@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
@@ -12,4 +9,104 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Enums
+enum ShareLinkKind {
+  public
+  ics
+}
+
+enum HabitEntryStatus {
+  done
+  skipped
+  micro_done
+  recovered
+}
+
+// Models
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique
+  name       String?
+  tz         String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  habits         Habit[]
+  capacity_plans CapacityPlan[]
+  share_links    ShareLink[]
+
+  @@map("users")
+}
+
+model Habit {
+  id            String   @id @default(uuid()) @db.Uuid
+  user_id       String   @db.Uuid
+  title         String
+  description   String?
+  weight_cu     Decimal  @db.Decimal
+  freq_type     String
+  freq_per_week Decimal  @db.Decimal
+  has_micro     Boolean  @default(false)
+  context_tags  String[]
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  user                 User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  entries              HabitEntry[]
+  planned_occurrences  PlannedOccurrence[]
+
+  @@map("habits")
+}
+
+model HabitEntry {
+  id                String            @id @default(uuid()) @db.Uuid
+  habit_id          String            @db.Uuid
+  date              DateTime          @db.Date
+  actual_weight_cu  Decimal           @db.Decimal
+  status            HabitEntryStatus
+  proof_url         String?
+  note              String?
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+
+  habit Habit @relation(fields: [habit_id], references: [id], onDelete: Cascade)
+
+  @@map("habit_entries")
+}
+
+model PlannedOccurrence {
+  id                String   @id @default(uuid()) @db.Uuid
+  habit_id          String   @db.Uuid
+  date              DateTime @db.Date
+  planned_weight_cu Decimal  @db.Decimal
+  context_tag       String?
+
+  habit Habit @relation(fields: [habit_id], references: [id], onDelete: Cascade)
+
+  @@map("planned_occurrences")
+}
+
+model CapacityPlan {
+  id              String   @id @default(uuid()) @db.Uuid
+  user_id         String   @db.Uuid
+  week_start_date DateTime @db.Date
+  capacity_cu     Decimal  @db.Decimal
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("capacity_plans")
+}
+
+model ShareLink {
+  id         String        @id @default(uuid()) @db.Uuid
+  user_id    String        @db.Uuid
+  token      String        @unique
+  kind       ShareLinkKind
+  is_active  Boolean       @default(true)
+  expires_at DateTime?     @db.Timestamptz(6)
+  created_at DateTime      @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("share_links")
 }
