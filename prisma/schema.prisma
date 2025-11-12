@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  output   = "../lib/prisma"
 }
 
 datasource db {
@@ -52,22 +52,22 @@ model Habit {
   is_active     Boolean  @default(true)
   created_at    DateTime @default(now()) @db.Timestamptz(6)
 
-  user                 User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  entries              HabitEntry[]
-  planned_occurrences  PlannedOccurrence[]
+  user                User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  entries             HabitEntry[]
+  planned_occurrences PlannedOccurrence[]
 
   @@map("habits")
 }
 
 model HabitEntry {
-  id                String            @id @default(uuid()) @db.Uuid
-  habit_id          String            @db.Uuid
-  date              DateTime          @db.Date
-  actual_weight_cu  Decimal           @db.Decimal
-  status            HabitEntryStatus
-  proof_url         String?
-  note              String?
-  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  id               String           @id @default(uuid()) @db.Uuid
+  habit_id         String           @db.Uuid
+  date             DateTime         @db.Date
+  actual_weight_cu Decimal          @db.Decimal
+  status           HabitEntryStatus
+  proof_url        String?
+  note             String?
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
 
   habit Habit @relation(fields: [habit_id], references: [id], onDelete: Cascade)
 
