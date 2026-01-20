@@ -14,6 +14,10 @@ type HabitPayload = {
   context_tags?: string[] | string;
 };
 
+type HabitUpdatePayload = HabitPayload & {
+  id?: number | string;
+};
+
 function toDecimalString(value: number | string | undefined) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value.toString();
@@ -23,6 +27,21 @@ function toDecimalString(value: number | string | undefined) {
     const trimmed = value.trim();
     if (trimmed && !Number.isNaN(Number(trimmed))) {
       return trimmed;
+    }
+  }
+
+  return null;
+}
+
+function toInteger(value: number | string | undefined) {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed && Number.isInteger(Number(trimmed))) {
+      return Number(trimmed);
     }
   }
 
@@ -55,6 +74,15 @@ const habitSchema = z.object({
   freq_type: z.preprocess(normalizeText, z.string()),
   freq_per_week: z.preprocess(toDecimalString, z.string()),
   micro_weight_cu: z.preprocess(toDecimalString, z.string()),
+});
+
+const habitUpdateSchema = z.object({
+  id: z.preprocess(toInteger, z.number().int().positive()),
+  title: z.preprocess(normalizeText, z.string()).optional(),
+  weight_cu: z.preprocess(toDecimalString, z.string()).optional(),
+  freq_type: z.preprocess(normalizeText, z.string()).optional(),
+  freq_per_week: z.preprocess(toDecimalString, z.string()).optional(),
+  micro_weight_cu: z.preprocess(toDecimalString, z.string()).optional(),
 });
 
 export async function POST(request: Request) {
@@ -165,6 +193,148 @@ export async function GET() {
     return NextResponse.json({ habits }, { status: 200 });
   } catch (error) {
     console.error("Fetch habits error:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    let payload: HabitUpdatePayload;
+    try {
+      payload = (await request.json()) as HabitUpdatePayload;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
+
+    if (!payload || typeof payload !== "object") {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const parsed = habitUpdateSchema.safeParse(payload);
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
+      const issuePath = firstIssue?.path?.[0];
+      const fieldLabel = issuePath ? String(issuePath) : "field";
+      const errorMessage =
+        firstIssue?.code === "invalid_type" &&
+        typeof firstIssue.input === "undefined"
+          ? `${fieldLabel} is required`
+          : `${fieldLabel} is invalid`;
+
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: data.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const habit = await prisma.habit.findFirst({
+      where: { id: parsed.data.id, user_id: user.id },
+    });
+
+    if (!habit) {
+      return NextResponse.json({ error: "Habit not found" }, { status: 404 });
+    }
+
+    const updateData: {
+      title?: string;
+      description?: string | null;
+      weight_cu?: string;
+      freq_type?: string;
+      freq_per_week?: string;
+      micro_title?: string | null;
+      micro_weight_cu?: string;
+      context_tags?: string[];
+      has_micro?: boolean;
+    } = {};
+
+    if (parsed.data.title !== undefined) {
+      updateData.title = parsed.data.title;
+    }
+
+    if (parsed.data.weight_cu !== undefined) {
+      updateData.weight_cu = parsed.data.weight_cu;
+    }
+
+    if (parsed.data.freq_type !== undefined) {
+      updateData.freq_type = parsed.data.freq_type;
+    }
+
+    if (parsed.data.freq_per_week !== undefined) {
+      updateData.freq_per_week = parsed.data.freq_per_week;
+    }
+
+    if (parsed.data.micro_weight_cu !== undefined) {
+      updateData.micro_weight_cu = parsed.data.micro_weight_cu;
+    }
+
+    if (payload.description !== undefined) {
+      updateData.description = normalizeText(payload.description);
+    }
+
+    if (payload.micro_title !== undefined) {
+      updateData.micro_title = normalizeText(payload.micro_title);
+    }
+
+    if (payload.context_tags !== undefined) {
+      updateData.context_tags = normalizeTags(payload.context_tags);
+    }
+
+    const hasMicroInput =
+      payload.micro_title !== undefined ||
+      parsed.data.micro_weight_cu !== undefined;
+
+    if (hasMicroInput) {
+      const nextMicroTitle =
+        payload.micro_title !== undefined
+          ? normalizeText(payload.micro_title)
+          : habit.micro_title;
+      const nextMicroWeight =
+        parsed.data.micro_weight_cu !== undefined
+          ? parsed.data.micro_weight_cu
+          : habit.micro_weight_cu.toString();
+      updateData.has_micro =
+        Boolean(nextMicroTitle) || Number.parseFloat(nextMicroWeight) > 0;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: "No fields to update" },
+        { status: 400 }
+      );
+    }
+
+    const updatedHabit = await prisma.habit.update({
+      where: { id: habit.id },
+      data: updateData,
+    });
+
+    return NextResponse.json(
+      { message: "Habit updated", habit: updatedHabit },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Update habit error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }
