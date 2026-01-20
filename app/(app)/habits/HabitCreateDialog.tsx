@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 type HabitFormState = {
   title: string;
   description: string;
   weight_cu: string;
   micro_title: string;
+  micro_weight_cu: string;
 };
 
 const initialState: HabitFormState = {
@@ -27,10 +29,12 @@ const initialState: HabitFormState = {
   description: "",
   weight_cu: "",
   micro_title: "",
+  micro_weight_cu: "",
 };
 
 export function HabitCreateDialog() {
   const [open, setOpen] = useState(false);
+  const [hasMicro, setHasMicro] = useState(false);
   const [formState, setFormState] = useState(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +43,7 @@ export function HabitCreateDialog() {
     setOpen(nextOpen);
     if (!nextOpen) {
       setFormState(initialState);
+      setHasMicro(false);
       setError(null);
     }
   };
@@ -62,6 +67,11 @@ export function HabitCreateDialog() {
       return;
     }
 
+    if (hasMicro && !formState.micro_weight_cu.trim()) {
+      setError("Micro capacity is required.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -74,8 +84,8 @@ export function HabitCreateDialog() {
           title: formState.title,
           description: formState.description || null,
           weight_cu: formState.weight_cu,
-          micro_title: formState.micro_title || null,
-          micro_weight_cu: "0",
+          micro_title: hasMicro ? formState.micro_title || null : null,
+          micro_weight_cu: hasMicro ? formState.micro_weight_cu : "0",
           freq_type: "weekly",
           freq_per_week: "3",
           context_tags: [],
@@ -102,7 +112,7 @@ export function HabitCreateDialog() {
         <Button type="button">Add habit</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[460px]">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>Create habit</DialogTitle>
             <DialogDescription>
@@ -144,16 +154,62 @@ export function HabitCreateDialog() {
                 required
               />
             </div>
-            <div className="grid gap-3">
-              <Label htmlFor="habit-microstep">Microstep</Label>
-              <Input
-                id="habit-microstep"
-                name="micro_title"
-                placeholder="Put on running shoes"
-                value={formState.micro_title}
-                onChange={handleChange}
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div>
+                <Label
+                  className="text-sm font-medium"
+                  htmlFor="habit-micro-toggle"
+                >
+                  Microstep
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Add a smaller version of the habit
+                </p>
+              </div>
+              <Switch
+                id="habit-micro-toggle"
+                checked={hasMicro}
+                onCheckedChange={(next) => {
+                  setHasMicro(next);
+                  if (!next) {
+                    setFormState((prev) => ({
+                      ...prev,
+                      micro_title: "",
+                      micro_weight_cu: "",
+                    }));
+                    setError(null);
+                  }
+                }}
               />
             </div>
+            {hasMicro ? (
+              <>
+                <div className="grid gap-3">
+                  <Label htmlFor="habit-microstep">Microstep</Label>
+                  <Input
+                    id="habit-microstep"
+                    name="micro_title"
+                    placeholder="Put on running shoes"
+                    value={formState.micro_title}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <Label htmlFor="habit-micro-weight">Micro capacity</Label>
+                  <Input
+                    id="habit-micro-weight"
+                    name="micro_weight_cu"
+                    placeholder="1"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formState.micro_weight_cu}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter>

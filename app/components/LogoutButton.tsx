@@ -34,11 +34,11 @@ export default function LogoutButton({
       onClick={handleLogout}
       disabled={loading}
       className={cn(
-        "px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-lg transition duration-200 disabled:cursor-not-allowed",
-        className
+        "px-4 py-2 border border-red-600 hover:bg-red-600 disabled:bg-red-400 text-red-600 hover:text-white font-medium text-sm rounded-lg transition duration-200 disabled:cursor-not-allowed",
+        className,
       )}
     >
-      {loading ? "Logging out..." : children ?? "Logout"}
+      {loading ? "Logging out..." : (children ?? "Logout")}
     </button>
   );
 }
