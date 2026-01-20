@@ -2,15 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { HabitCreateDialog } from "./HabitCreateDialog";
+import type { HabitListItem } from "./types";
 
-type Habit = {
-  id: number;
-  title: string;
-  freq_type: string;
-  freq_per_week: string;
-};
-
-function formatSchedule(habit: Habit) {
+function formatSchedule(habit: HabitListItem) {
   const freqType = habit.freq_type?.trim() || "weekly";
   const freqCount = habit.freq_per_week ?? "0";
 
@@ -26,7 +20,7 @@ function formatSchedule(habit: Habit) {
 }
 
 export default function HabitsPage() {
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [habits, setHabits] = useState<HabitListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,14 +30,16 @@ export default function HabitsPage() {
     const loadHabits = async () => {
       try {
         const response = await fetch("/api/habits");
+        const data = (await response.json().catch(() => null)) as
+          | { habits?: HabitListItem[]; error?: string }
+          | null;
+
         if (!response.ok) {
-          const data = await response.json().catch(() => null);
           throw new Error(data?.error ?? "Failed to load habits.");
         }
 
-        const data = (await response.json()) as { habits?: Habit[] };
         if (isMounted) {
-          setHabits(data.habits ?? []);
+          setHabits(data?.habits ?? []);
         }
       } catch (loadError) {
         if (isMounted) {
@@ -67,6 +63,17 @@ export default function HabitsPage() {
     };
   }, []);
 
+  const handleHabitCreated = (habit: HabitListItem) => {
+    setHabits((prev) => {
+      if (prev.some((item) => item.id === habit.id)) {
+        return prev;
+      }
+      return [habit, ...prev];
+    });
+    setError(null);
+    setIsLoading(false);
+  };
+
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -77,7 +84,7 @@ export default function HabitsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <HabitCreateDialog />
+          <HabitCreateDialog onHabitCreated={handleHabitCreated} />
         </div>
       </header>
 

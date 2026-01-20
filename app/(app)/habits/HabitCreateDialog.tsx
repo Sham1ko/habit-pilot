@@ -14,12 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { HabitListItem } from "./types";
 import { Switch } from "@/components/ui/switch";
 
 type HabitFormState = {
   title: string;
   description: string;
   weight_cu: string;
+  freq_type: "daily" | "weekly";
+  freq_per_week: string;
   micro_title: string;
   micro_weight_cu: string;
 };
@@ -28,11 +31,17 @@ const initialState: HabitFormState = {
   title: "",
   description: "",
   weight_cu: "",
+  freq_type: "weekly",
+  freq_per_week: "3",
   micro_title: "",
   micro_weight_cu: "",
 };
 
-export function HabitCreateDialog() {
+type HabitCreateDialogProps = {
+  onHabitCreated?: (habit: HabitListItem) => void;
+};
+
+export function HabitCreateDialog({ onHabitCreated }: HabitCreateDialogProps) {
   const [open, setOpen] = useState(false);
   const [hasMicro, setHasMicro] = useState(false);
   const [formState, setFormState] = useState(initialState);
@@ -67,6 +76,11 @@ export function HabitCreateDialog() {
       return;
     }
 
+    if (formState.freq_type === "weekly" && !formState.freq_per_week.trim()) {
+      setError("Weekly frequency is required.");
+      return;
+    }
+
     if (hasMicro && !formState.micro_weight_cu.trim()) {
       setError("Micro capacity is required.");
       return;
@@ -75,6 +89,9 @@ export function HabitCreateDialog() {
     setIsSubmitting(true);
 
     try {
+      const freqPerWeek =
+        formState.freq_type === "daily" ? "7" : formState.freq_per_week;
+
       const response = await fetch("/api/habits", {
         method: "POST",
         headers: {
@@ -86,16 +103,23 @@ export function HabitCreateDialog() {
           weight_cu: formState.weight_cu,
           micro_title: hasMicro ? formState.micro_title || null : null,
           micro_weight_cu: hasMicro ? formState.micro_weight_cu : "0",
-          freq_type: "weekly",
-          freq_per_week: "3",
+          freq_type: formState.freq_type,
+          freq_per_week: freqPerWeek,
           context_tags: [],
         }),
       });
 
+      const data = (await response.json().catch(() => null)) as
+        | { habit?: HabitListItem; error?: string }
+        | null;
+
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
         setError(data?.error ?? "Failed to create habit.");
         return;
+      }
+
+      if (data?.habit) {
+        onHabitCreated?.(data.habit);
       }
 
       setOpen(false);
@@ -153,6 +177,62 @@ export function HabitCreateDialog() {
                 onChange={handleChange}
                 required
               />
+            </div>
+            <div className="grid gap-3">
+              <Label>Frequency</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={
+                    formState.freq_type === "daily" ? "default" : "outline"
+                  }
+                  onClick={() =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      freq_type: "daily",
+                    }))
+                  }
+                >
+                  Daily
+                </Button>
+                <Button
+                  type="button"
+                  variant={
+                    formState.freq_type === "weekly" ? "default" : "outline"
+                  }
+                  onClick={() =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      freq_type: "weekly",
+                    }))
+                  }
+                >
+                  Weekly
+                </Button>
+              </div>
+              {formState.freq_type === "weekly" ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="habit-frequency"
+                    name="freq_per_week"
+                    placeholder="3"
+                    type="number"
+                    min="1"
+                    max="7"
+                    step="1"
+                    value={formState.freq_per_week}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    times per week
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Every day (7x per week)
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
               <div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LogOut, Settings } from "lucide-react";
-import LogoutButton from "@/app/components/LogoutButton";
+import LogoutButton from "@/components/LogoutButton";
 
 const navItems = [
   { href: "/today", label: "Today" },
@@ -59,9 +59,7 @@ export default function AppLayout({
           </div>
         </aside>
 
-        <main className="flex-1 px-6 py-8 md:px-10 md:py-10">
-          {children}
-        </main>
+        <main className="flex-1 px-6 py-8 md:px-10 md:py-10">{children}</main>
       </div>
     </div>
   );
