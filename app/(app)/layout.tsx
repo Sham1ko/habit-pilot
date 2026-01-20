@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogOut, Settings } from "lucide-react";
 import LogoutButton from "@/app/components/LogoutButton";
 
 const navItems = [
@@ -44,11 +45,17 @@ export default function AppLayout({
           <div className="mt-6 border-t border-zinc-200 pt-4">
             <button
               type="button"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
             >
+              <Settings className="h-4 w-4" />
               Settings
             </button>
-            <LogoutButton className="mt-3 w-full" />
+            <LogoutButton className="mt-3 w-full">
+              <span className="inline-flex items-center justify-center gap-2">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </span>
+            </LogoutButton>
           </div>
         </aside>
 

@@ -6,9 +6,13 @@ import { cn } from "@/lib/utils";
 
 type LogoutButtonProps = {
   className?: string;
+  children?: React.ReactNode;
 };
 
-export default function LogoutButton({ className }: LogoutButtonProps) {
+export default function LogoutButton({
+  className,
+  children,
+}: LogoutButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +38,7 @@ export default function LogoutButton({ className }: LogoutButtonProps) {
         className
       )}
     >
-      {loading ? "Logging out..." : "Logout"}
+      {loading ? "Logging out..." : children ?? "Logout"}
     </button>
   );
 }
