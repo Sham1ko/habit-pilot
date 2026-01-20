@@ -48,8 +48,8 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      // Redirect to home page after successful login
-      router.push("/");
+      // Redirect to today's page after successful login
+      router.push("/today");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
