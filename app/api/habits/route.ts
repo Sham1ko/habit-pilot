@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaClient";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 type HabitPayload = {
   title?: string;
@@ -48,6 +49,14 @@ function normalizeTags(value?: string[] | string) {
     .filter(Boolean);
 }
 
+const habitSchema = z.object({
+  title: z.preprocess(normalizeText, z.string()),
+  weight_cu: z.preprocess(toDecimalString, z.string()),
+  freq_type: z.preprocess(normalizeText, z.string()),
+  freq_per_week: z.preprocess(toDecimalString, z.string()),
+  micro_weight_cu: z.preprocess(toDecimalString, z.string()),
+});
+
 export async function POST(request: Request) {
   try {
     let payload: HabitPayload;
@@ -81,62 +90,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const title = normalizeText(payload.title);
-    if (!title) {
+    const parsed = habitSchema.safeParse(payload);
+    if (!parsed.success) {
+      const issuePath = parsed.error.issues[0]?.path?.[0];
+      const fieldLabel = issuePath ? String(issuePath) : "field";
       return NextResponse.json(
-        { error: "Title is required" },
+        { error: `${fieldLabel} is required` },
         { status: 400 }
       );
     }
 
-    const weightCu = toDecimalString(payload.weight_cu);
-    if (weightCu === null) {
-      return NextResponse.json(
-        { error: "weight_cu is required" },
-        { status: 400 }
-      );
-    }
-
-    const freqType = normalizeText(payload.freq_type);
-    if (!freqType) {
-      return NextResponse.json(
-        { error: "freq_type is required" },
-        { status: 400 }
-      );
-    }
-
-    const freqPerWeek = toDecimalString(payload.freq_per_week);
-    if (freqPerWeek === null) {
-      return NextResponse.json(
-        { error: "freq_per_week is required" },
-        { status: 400 }
-      );
-    }
-
-    const microWeightCu = toDecimalString(payload.micro_weight_cu);
-    if (microWeightCu === null) {
-      return NextResponse.json(
-        { error: "micro_weight_cu is required" },
-        { status: 400 }
-      );
-    }
+    const { title, weight_cu, freq_type, freq_per_week, micro_weight_cu } =
+      parsed.data;
 
     const description = normalizeText(payload.description);
     const microTitle = normalizeText(payload.micro_title);
     const hasMicro =
-      Boolean(microTitle) || Number.parseFloat(microWeightCu) > 0;
+      Boolean(microTitle) || Number.parseFloat(micro_weight_cu) > 0;
 
     const createdHabit = await prisma.habit.create({
       data: {
         user_id: user.id,
         title,
         description,
-        weight_cu: weightCu,
-        freq_type: freqType,
-        freq_per_week: freqPerWeek,
+        weight_cu,
+        freq_type,
+        freq_per_week,
         has_micro: hasMicro,
         micro_title: microTitle,
-        micro_weight_cu: microWeightCu,
+        micro_weight_cu,
         context_tags: normalizeTags(payload.context_tags),
         is_active: true,
       },

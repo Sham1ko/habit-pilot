@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, type ChangeEvent, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -11,58 +11,58 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type HabitFormState = {
-  title: string
-  description: string
-  weight_cu: string
-  micro_title: string
-}
+  title: string;
+  description: string;
+  weight_cu: string;
+  micro_title: string;
+};
 
 const initialState: HabitFormState = {
   title: "",
   description: "",
   weight_cu: "",
   micro_title: "",
-}
+};
 
 export function HabitCreateDialog() {
-  const [open, setOpen] = useState(false)
-  const [formState, setFormState] = useState(initialState)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false);
+  const [formState, setFormState] = useState(initialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
+    setOpen(nextOpen);
     if (!nextOpen) {
-      setFormState(initialState)
-      setError(null)
+      setFormState(initialState);
+      setError(null);
     }
-  }
+  };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target
-    setFormState((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = event.target;
+    setFormState((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError(null)
+    event.preventDefault();
+    setError(null);
 
     if (!formState.title.trim()) {
-      setError("Name is required.")
-      return
+      setError("Name is required.");
+      return;
     }
 
     if (!formState.weight_cu.trim()) {
-      setError("Capacity is required.")
-      return
+      setError("Capacity is required.");
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/habits", {
@@ -80,21 +80,21 @@ export function HabitCreateDialog() {
           freq_per_week: "3",
           context_tags: [],
         }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        setError(data?.error ?? "Failed to create habit.")
-        return
+        const data = await response.json().catch(() => null);
+        setError(data?.error ?? "Failed to create habit.");
+        return;
       }
 
-      setOpen(false)
+      setOpen(false);
     } catch {
-      setError("Failed to create habit.")
+      setError("Failed to create habit.");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -118,7 +118,6 @@ export function HabitCreateDialog() {
                 placeholder="Morning run"
                 value={formState.title}
                 onChange={handleChange}
-                required
               />
             </div>
             <div className="grid gap-3">
@@ -156,9 +155,7 @@ export function HabitCreateDialog() {
               />
             </div>
           </div>
-          {error ? (
-            <p className="text-sm text-destructive">{error}</p>
-          ) : null}
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline">
@@ -172,5 +169,5 @@ export function HabitCreateDialog() {
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
