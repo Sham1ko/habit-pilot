@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaClient";
+import { createClient } from "@/lib/supabase/server";
 
 type HabitPayload = {
   title?: string;
@@ -12,9 +13,7 @@ type HabitPayload = {
   context_tags?: string[] | string;
 };
 
-const MOCK_USER_EMAIL = "mock@habit.local";
-
-function toDecimalString(value: number | string | undefined, fallback: string) {
+function toDecimalString(value: number | string | undefined) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value.toString();
   }
@@ -26,7 +25,7 @@ function toDecimalString(value: number | string | undefined, fallback: string) {
     }
   }
 
-  return fallback;
+  return null;
 }
 
 function normalizeText(value?: string | null) {
@@ -51,32 +50,79 @@ function normalizeTags(value?: string[] | string) {
 
 export async function POST(request: Request) {
   try {
-    let payload: HabitPayload = {};
-
+    let payload: HabitPayload;
     try {
-      const contentLength = request.headers.get("content-length");
-      if (!contentLength || contentLength !== "0") {
-        payload = (await request.json()) as HabitPayload;
-      }
+      payload = (await request.json()) as HabitPayload;
     } catch {
-      payload = {};
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
     }
 
-    const user = await prisma.user.upsert({
-      where: { email: MOCK_USER_EMAIL },
-      update: {},
-      create: {
-        email: MOCK_USER_EMAIL,
-        name: "Mock User",
-      },
+    if (!payload || typeof payload !== "object") {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: data.user.email },
     });
 
-    const title = normalizeText(payload.title) ?? "New habit";
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const title = normalizeText(payload.title);
+    if (!title) {
+      return NextResponse.json(
+        { error: "Title is required" },
+        { status: 400 }
+      );
+    }
+
+    const weightCu = toDecimalString(payload.weight_cu);
+    if (weightCu === null) {
+      return NextResponse.json(
+        { error: "weight_cu is required" },
+        { status: 400 }
+      );
+    }
+
+    const freqType = normalizeText(payload.freq_type);
+    if (!freqType) {
+      return NextResponse.json(
+        { error: "freq_type is required" },
+        { status: 400 }
+      );
+    }
+
+    const freqPerWeek = toDecimalString(payload.freq_per_week);
+    if (freqPerWeek === null) {
+      return NextResponse.json(
+        { error: "freq_per_week is required" },
+        { status: 400 }
+      );
+    }
+
+    const microWeightCu = toDecimalString(payload.micro_weight_cu);
+    if (microWeightCu === null) {
+      return NextResponse.json(
+        { error: "micro_weight_cu is required" },
+        { status: 400 }
+      );
+    }
+
     const description = normalizeText(payload.description);
     const microTitle = normalizeText(payload.micro_title);
-    const weightCu = toDecimalString(payload.weight_cu, "1");
-    const freqPerWeek = toDecimalString(payload.freq_per_week, "3");
-    const microWeightCu = toDecimalString(payload.micro_weight_cu, "0");
     const hasMicro =
       Boolean(microTitle) || Number.parseFloat(microWeightCu) > 0;
 
@@ -86,7 +132,7 @@ export async function POST(request: Request) {
         title,
         description,
         weight_cu: weightCu,
-        freq_type: payload.freq_type?.trim() || "weekly",
+        freq_type: freqType,
         freq_per_week: freqPerWeek,
         has_micro: hasMicro,
         micro_title: microTitle,
