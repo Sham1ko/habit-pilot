@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { HabitCreateDialog } from "./HabitCreateDialog";
+import { HabitEditDialog } from "./HabitEditDialog";
 import type { HabitListItem } from "./types";
 
 function formatSchedule(habit: HabitListItem) {
@@ -74,6 +76,12 @@ export default function HabitsPage() {
     setIsLoading(false);
   };
 
+  const handleHabitUpdated = (updatedHabit: HabitListItem) => {
+    setHabits((prev) =>
+      prev.map((habit) => (habit.id === updatedHabit.id ? updatedHabit : habit))
+    );
+  };
+
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -88,7 +96,7 @@ export default function HabitsPage() {
         </div>
       </header>
 
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         {isLoading ? (
           <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
             Loading habits...
@@ -105,13 +113,39 @@ export default function HabitsPage() {
           habits.map((habit) => (
             <div
               key={habit.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground"
+              className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm"
             >
-              <div>
-                <h2 className="text-lg font-semibold">{habit.title}</h2>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">{habit.title}</h2>
+                  {habit.description ? (
+                    <p className="text-sm text-muted-foreground">
+                      {habit.description}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <HabitEditDialog
+                    habit={habit}
+                    onHabitUpdated={handleHabitUpdated}
+                  />
+                  <Button type="button" variant="outline" size="sm" disabled>
+                    Archive
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full border border-border/70 bg-background px-2 py-1">
                   {formatSchedule(habit)}
-                </p>
+                </span>
+                <span className="rounded-full border border-border/70 bg-background px-2 py-1">
+                  Capacity: {habit.weight_cu}
+                </span>
+                {habit.has_micro ? (
+                  <span className="rounded-full border border-border/70 bg-background px-2 py-1">
+                    Micro: {habit.micro_weight_cu}
+                  </span>
+                ) : null}
               </div>
             </div>
           ))
