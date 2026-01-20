@@ -14,140 +14,195 @@ type HabitPayload = {
   context_tags?: string[] | string;
 };
 
-type HabitUpdatePayload = HabitPayload & {
-  id?: number | string;
-};
-
-function toDecimalString(value: number | string | undefined) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value.toString();
+async function parseJsonOr400<T>(request: Request) {
+  try {
+    const data = (await request.json()) as T;
+    return { data };
+  } catch {
+    return {
+      error: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
+    };
   }
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed && !Number.isNaN(Number(trimmed))) {
-      return trimmed;
-    }
-  }
-
-  return null;
 }
 
-function toInteger(value: number | string | undefined) {
-  if (typeof value === "number" && Number.isInteger(value)) {
+async function requireAuthUserEmail() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  const email = data.user?.email;
+  if (error || !email) {
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  return { email };
+}
+
+async function requireDbUser(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    return {
+      error: NextResponse.json({ error: "User not found" }, { status: 404 }),
+    };
+  }
+
+  return { user };
+}
+
+function computeHasMicro(
+  microTitle: string | null | undefined,
+  microWeightCuString: string | null | undefined,
+) {
+  const normalizedTitle = microTitle?.trim();
+  const weightValue = microWeightCuString ?? "0";
+  return Boolean(normalizedTitle) || Number.parseFloat(weightValue) > 0;
+}
+
+const decimalString = z
+  .preprocess((value) => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value.toString() : "";
+    }
+
+    if (typeof value === "string") {
+      return value.trim();
+    }
+
+    if (value === null) {
+      return "";
+    }
+
     return value;
+  }, z.coerce.string())
+  .refine((value) => value !== "" && !Number.isNaN(Number(value)), {
+    message: "Invalid number",
+  });
+
+const requiredText = z.string().trim().min(1);
+
+const nullableText = z.preprocess((value) => {
+  if (typeof value === "undefined") {
+    return undefined;
   }
 
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed && Number.isInteger(Number(trimmed))) {
-      return Number(trimmed);
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}, z.string().nullable());
+
+const tagsSchema = z.preprocess(
+  (value) => {
+    if (!value) {
+      return [];
     }
-  }
 
-  return null;
-}
+    if (Array.isArray(value)) {
+      return value;
+    }
 
-function normalizeText(value?: string | null) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
-}
+    if (typeof value === "string") {
+      return value.split(",");
+    }
 
-function normalizeTags(value?: string[] | string) {
-  if (!value) {
-    return [];
-  }
+    return value;
+  },
+  z
+    .array(z.string())
+    .transform((tags) => tags.map((tag) => tag.trim()).filter(Boolean)),
+);
 
-  if (Array.isArray(value)) {
-    return value.map((tag) => tag.trim()).filter(Boolean);
-  }
-
-  return value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-const habitSchema = z.object({
-  title: z.preprocess(normalizeText, z.string()),
-  weight_cu: z.preprocess(toDecimalString, z.string()),
-  freq_type: z.preprocess(normalizeText, z.string()),
-  freq_per_week: z.preprocess(toDecimalString, z.string()),
-  micro_weight_cu: z.preprocess(toDecimalString, z.string()),
+const habitCreateSchema = z.object({
+  title: requiredText,
+  description: nullableText.optional(),
+  weight_cu: decimalString,
+  freq_type: requiredText,
+  freq_per_week: decimalString,
+  micro_title: nullableText.optional(),
+  micro_weight_cu: decimalString,
+  context_tags: tagsSchema.optional().default([]),
 });
 
-const habitUpdateSchema = z.object({
-  id: z.preprocess(toInteger, z.number().int().positive()),
-  title: z.preprocess(normalizeText, z.string()).optional(),
-  weight_cu: z.preprocess(toDecimalString, z.string()).optional(),
-  freq_type: z.preprocess(normalizeText, z.string()).optional(),
-  freq_per_week: z.preprocess(toDecimalString, z.string()).optional(),
-  micro_weight_cu: z.preprocess(toDecimalString, z.string()).optional(),
-});
+const habitUpdateSchema = z
+  .object({
+    id: z.coerce.number().int().positive(),
+    title: requiredText.optional(),
+    description: nullableText.optional(),
+    weight_cu: decimalString.optional(),
+    freq_type: requiredText.optional(),
+    freq_per_week: decimalString.optional(),
+    micro_title: nullableText.optional(),
+    micro_weight_cu: decimalString.optional(),
+    context_tags: tagsSchema.optional(),
+  })
+  .refine(
+    ({ id, ...rest }) =>
+      Object.values(rest).some((value) => value !== undefined),
+    { message: "No fields to update", path: ["fields"] },
+  );
 
 export async function POST(request: Request) {
   try {
-    let payload: HabitPayload;
-    try {
-      payload = (await request.json()) as HabitPayload;
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 }
-      );
+    const { data: payload, error: jsonError } =
+      await parseJsonOr400<HabitPayload>(request);
+    if (jsonError) {
+      return jsonError;
     }
 
-    if (!payload || typeof payload !== "object") {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 }
-      );
-    }
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: data.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const parsed = habitSchema.safeParse(payload);
+    const parsed = habitCreateSchema.safeParse(payload);
     if (!parsed.success) {
       const issuePath = parsed.error.issues[0]?.path?.[0];
       const fieldLabel = issuePath ? String(issuePath) : "field";
       return NextResponse.json(
         { error: `${fieldLabel} is required` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { title, weight_cu, freq_type, freq_per_week, micro_weight_cu } =
-      parsed.data;
+    const { email, error: authError } = await requireAuthUserEmail();
+    if (authError) {
+      return authError;
+    }
 
-    const description = normalizeText(payload.description);
-    const microTitle = normalizeText(payload.micro_title);
-    const hasMicro =
-      Boolean(microTitle) || Number.parseFloat(micro_weight_cu) > 0;
+    const { user, error: userError } = await requireDbUser(email);
+    if (userError) {
+      return userError;
+    }
+
+    const {
+      title,
+      description,
+      weight_cu,
+      freq_type,
+      freq_per_week,
+      micro_title,
+      micro_weight_cu,
+      context_tags,
+    } = parsed.data;
+
+    const microTitle = micro_title ?? null;
+    const hasMicro = computeHasMicro(microTitle, micro_weight_cu);
 
     const createdHabit = await prisma.habit.create({
       data: {
         user_id: user.id,
         title,
-        description,
+        description: description ?? null,
         weight_cu,
         freq_type,
         freq_per_week,
         has_micro: hasMicro,
         micro_title: microTitle,
         micro_weight_cu,
-        context_tags: normalizeTags(payload.context_tags),
+        context_tags,
         is_active: true,
       },
     });
@@ -157,32 +212,27 @@ export async function POST(request: Request) {
         message: "Habit created",
         habit: createdHabit,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create habit error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { email, error: authError } = await requireAuthUserEmail();
+    if (authError) {
+      return authError;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: data.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const { user, error: userError } = await requireDbUser(email);
+    if (userError) {
+      return userError;
     }
 
     const habits = await prisma.habit.findMany({
@@ -195,57 +245,34 @@ export async function GET() {
     console.error("Fetch habits error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(request: Request) {
   try {
-    let payload: HabitUpdatePayload;
-    try {
-      payload = (await request.json()) as HabitUpdatePayload;
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 }
-      );
-    }
-
-    if (!payload || typeof payload !== "object") {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 }
-      );
+    const { data: payload, error: jsonError } =
+      await parseJsonOr400<unknown>(request);
+    if (jsonError) {
+      return jsonError;
     }
 
     const parsed = habitUpdateSchema.safeParse(payload);
     if (!parsed.success) {
       const firstIssue = parsed.error.issues[0];
-      const issuePath = firstIssue?.path?.[0];
-      const fieldLabel = issuePath ? String(issuePath) : "field";
-      const errorMessage =
-        firstIssue?.code === "invalid_type" &&
-        typeof firstIssue.input === "undefined"
-          ? `${fieldLabel} is required`
-          : `${fieldLabel} is invalid`;
-
-      return NextResponse.json({ error: errorMessage }, { status: 400 });
+      const message = firstIssue?.message ?? "Invalid request body";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { email, error: authError } = await requireAuthUserEmail();
+    if (authError) {
+      return authError;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: data.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const { user, error: userError } = await requireDbUser(email);
+    if (userError) {
+      return userError;
     }
 
     const habit = await prisma.habit.findFirst({
@@ -255,6 +282,20 @@ export async function PATCH(request: Request) {
     if (!habit) {
       return NextResponse.json({ error: "Habit not found" }, { status: 404 });
     }
+
+    const {
+      title,
+      description,
+      weight_cu,
+      freq_type,
+      freq_per_week,
+      micro_title,
+      micro_weight_cu,
+      context_tags,
+    } = parsed.data;
+
+    const hasMicroInput =
+      micro_title !== undefined || micro_weight_cu !== undefined;
 
     const updateData: {
       title?: string;
@@ -266,62 +307,25 @@ export async function PATCH(request: Request) {
       micro_weight_cu?: string;
       context_tags?: string[];
       has_micro?: boolean;
-    } = {};
-
-    if (parsed.data.title !== undefined) {
-      updateData.title = parsed.data.title;
-    }
-
-    if (parsed.data.weight_cu !== undefined) {
-      updateData.weight_cu = parsed.data.weight_cu;
-    }
-
-    if (parsed.data.freq_type !== undefined) {
-      updateData.freq_type = parsed.data.freq_type;
-    }
-
-    if (parsed.data.freq_per_week !== undefined) {
-      updateData.freq_per_week = parsed.data.freq_per_week;
-    }
-
-    if (parsed.data.micro_weight_cu !== undefined) {
-      updateData.micro_weight_cu = parsed.data.micro_weight_cu;
-    }
-
-    if (payload.description !== undefined) {
-      updateData.description = normalizeText(payload.description);
-    }
-
-    if (payload.micro_title !== undefined) {
-      updateData.micro_title = normalizeText(payload.micro_title);
-    }
-
-    if (payload.context_tags !== undefined) {
-      updateData.context_tags = normalizeTags(payload.context_tags);
-    }
-
-    const hasMicroInput =
-      payload.micro_title !== undefined ||
-      parsed.data.micro_weight_cu !== undefined;
+    } = {
+      title,
+      description,
+      weight_cu,
+      freq_type,
+      freq_per_week,
+      micro_title,
+      micro_weight_cu,
+      context_tags,
+    };
 
     if (hasMicroInput) {
       const nextMicroTitle =
-        payload.micro_title !== undefined
-          ? normalizeText(payload.micro_title)
-          : habit.micro_title;
+        micro_title !== undefined ? micro_title : habit.micro_title;
       const nextMicroWeight =
-        parsed.data.micro_weight_cu !== undefined
-          ? parsed.data.micro_weight_cu
+        micro_weight_cu !== undefined
+          ? micro_weight_cu
           : habit.micro_weight_cu.toString();
-      updateData.has_micro =
-        Boolean(nextMicroTitle) || Number.parseFloat(nextMicroWeight) > 0;
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(
-        { error: "No fields to update" },
-        { status: 400 }
-      );
+      updateData.has_micro = computeHasMicro(nextMicroTitle, nextMicroWeight);
     }
 
     const updatedHabit = await prisma.habit.update({
@@ -331,13 +335,13 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(
       { message: "Habit updated", habit: updatedHabit },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Update habit error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
