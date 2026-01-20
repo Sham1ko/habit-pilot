@@ -14,17 +14,6 @@ type HabitPayload = {
   context_tags?: string[] | string;
 };
 
-async function parseJsonOr400<T>(request: Request) {
-  try {
-    const data = (await request.json()) as T;
-    return { data };
-  } catch {
-    return {
-      error: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
-    };
-  }
-}
-
 async function requireAuthUserEmail() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
@@ -151,10 +140,14 @@ const habitUpdateSchema = z
 
 export async function POST(request: Request) {
   try {
-    const { data: payload, error: jsonError } =
-      await parseJsonOr400<HabitPayload>(request);
-    if (jsonError) {
-      return jsonError;
+    let payload: HabitPayload;
+    try {
+      payload = (await request.json()) as HabitPayload;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
     }
 
     const parsed = habitCreateSchema.safeParse(payload);
@@ -252,10 +245,14 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const { data: payload, error: jsonError } =
-      await parseJsonOr400<unknown>(request);
-    if (jsonError) {
-      return jsonError;
+    let payload: unknown;
+    try {
+      payload = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 },
+      );
     }
 
     const parsed = habitUpdateSchema.safeParse(payload);
