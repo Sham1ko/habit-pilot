@@ -25,7 +25,7 @@ enum HabitEntryStatus {
 
 // Models
 model User {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         Int      @id @default(autoincrement())
   email      String   @unique
   name       String?
   tz         String?
@@ -39,17 +39,19 @@ model User {
 }
 
 model Habit {
-  id            String   @id @default(uuid()) @db.Uuid
-  user_id       String   @db.Uuid
-  title         String
-  description   String?
-  weight_cu     Decimal  @db.Decimal
-  freq_type     String
-  freq_per_week Decimal  @db.Decimal
-  has_micro     Boolean  @default(false)
-  context_tags  String[]
-  is_active     Boolean  @default(true)
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  title           String
+  description     String?
+  weight_cu       Decimal  @db.Decimal
+  freq_type       String
+  freq_per_week   Decimal  @db.Decimal
+  has_micro       Boolean  @default(false)
+  micro_title     String?
+  micro_weight_cu Decimal  @db.Decimal
+  context_tags    String[]
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
 
   user                User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   entries             HabitEntry[]
@@ -60,7 +62,7 @@ model Habit {
 
 model HabitEntry {
   id               String           @id @default(uuid()) @db.Uuid
-  habit_id         String           @db.Uuid
+  habit_id         Int              @db.Integer
   date             DateTime         @db.Date
   actual_weight_cu Decimal          @db.Decimal
   status           HabitEntryStatus
@@ -75,7 +77,7 @@ model HabitEntry {
 
 model PlannedOccurrence {
   id                String   @id @default(uuid()) @db.Uuid
-  habit_id          String   @db.Uuid
+  habit_id          Int      @db.Integer
   date              DateTime @db.Date
   planned_weight_cu Decimal  @db.Decimal
   context_tag       String?
@@ -87,7 +89,7 @@ model PlannedOccurrence {
 
 model CapacityPlan {
   id              String   @id @default(uuid()) @db.Uuid
-  user_id         String   @db.Uuid
+  user_id         Int      @db.Integer
   week_start_date DateTime @db.Date
   capacity_cu     Decimal  @db.Decimal
 
@@ -98,7 +100,7 @@ model CapacityPlan {
 
 model ShareLink {
   id         String        @id @default(uuid()) @db.Uuid
-  user_id    String        @db.Uuid
+  user_id    Int           @db.Integer
   token      String        @unique
   kind       ShareLinkKind
   is_active  Boolean       @default(true)
