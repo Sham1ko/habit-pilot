@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -11,20 +11,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  useEffect(() => {
-    if (searchParams.get("registered") === "true") {
-      setSuccessMessage(
-        "Registration successful! Please check your email to verify your account."
-      );
-    }
-  }, [searchParams]);
+  const [dismissedSuccess, setDismissedSuccess] = useState(false);
+  const showSuccess =
+    searchParams.get("registered") === "true" && !dismissedSuccess;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccessMessage("");
+    setDismissedSuccess(true);
 
     if (!email || !password) {
       setError("Please fill in all fields");
@@ -108,17 +102,18 @@ export default function LoginPage() {
               />
             </div>
 
-            {successMessage && (
+            {showSuccess ? (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg text-sm">
-                {successMessage}
+                Registration successful! Please check your email to verify your
+                account.
               </div>
-            )}
+            ) : null}
 
-            {error && (
+            {error ? (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
-            )}
+            ) : null}
 
             <button
               type="submit"
