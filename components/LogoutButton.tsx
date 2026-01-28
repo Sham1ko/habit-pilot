@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 
 type LogoutButtonProps = {
@@ -14,31 +14,39 @@ export default function LogoutButton({
   children,
 }: LogoutButtonProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const handleLogout = async () => {
-    setLoading(true);
+    if (isLoggingOut || isPending) {
+      return;
+    }
+    setIsLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+      startTransition(() => {
+        router.replace("/login");
+        router.refresh();
+      });
     } catch (error) {
       console.error("Logout error:", error);
-    } finally {
-      setLoading(false);
+      setIsLoggingOut(false);
     }
   };
 
   return (
     <button
       onClick={handleLogout}
-      disabled={loading}
+      disabled={isLoggingOut || isPending}
       className={cn(
         "px-4 py-2 border border-red-600 hover:bg-red-600 disabled:bg-red-400 text-red-600 hover:text-white font-medium text-sm rounded-lg transition duration-200 disabled:cursor-not-allowed",
         className,
       )}
     >
-      {loading ? "Logging out..." : (children ?? "Logout")}
+      {isLoggingOut || isPending ? "Logging out..." : (children ?? "Logout")}
     </button>
   );
 }
