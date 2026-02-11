@@ -44,7 +44,7 @@ export function PlannedItemCard({
     Math.abs(occurrence.planned_weight_cu - occurrence.habit_micro_weight_cu) < 0.001;
 
   return (
-    <article className="rounded-lg border border-border/70 bg-background/60 p-3">
+    <article className="rounded-lg border border-zinc-200 bg-white p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 space-y-2">
           <p className="truncate text-sm font-medium">{occurrence.habit_title}</p>

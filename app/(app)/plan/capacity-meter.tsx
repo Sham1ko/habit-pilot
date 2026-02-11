@@ -29,7 +29,7 @@ export function CapacityMeter({ plannedCu, capacityCu }: CapacityMeterProps) {
   const overload = capacityCu && capacityCu > 0 ? Math.max(plannedCu - capacityCu, 0) : 0;
 
   return (
-    <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+    <div className="rounded-xl border border-zinc-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
