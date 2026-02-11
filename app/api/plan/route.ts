@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaClient";
-import { createClient } from "@/lib/supabase/server";
 import { formatDateUTC, getDateContext } from "@/lib/date";
+import { requireRequestUser } from "@/lib/api/auth";
+import { hasRouteError, parseJsonBody } from "@/lib/api/http";
+import { toNumber } from "@/lib/number";
 
 const addOccurrenceSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -88,45 +90,6 @@ const deleteOccurrenceSchema = z.object({
   occurrence_id: z.string().uuid(),
 });
 
-function toNumber(value: unknown) {
-  if (typeof value === "number") {
-    return value;
-  }
-  if (typeof value === "string") {
-    return Number(value);
-  }
-  if (value && typeof value === "object" && "toString" in value) {
-    return Number(String(value));
-  }
-  return 0;
-}
-
-async function requireAuthUserEmail() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-
-  const email = data.user?.email;
-  if (error || !email) {
-    return {
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-    };
-  }
-
-  return { email };
-}
-
-async function requireDbUser(email: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
-
-  if (!user) {
-    return {
-      error: NextResponse.json({ error: "User not found" }, { status: 404 }),
-    };
-  }
-
-  return { user };
-}
-
 async function getPlannedTotal(userId: number, weekStart: Date, weekEnd: Date) {
   const plannedSum = await prisma.plannedOccurrence.aggregate({
     where: {
@@ -141,15 +104,11 @@ async function getPlannedTotal(userId: number, weekStart: Date, weekEnd: Date) {
 
 export async function GET() {
   try {
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const {
       todayDateString,
@@ -271,32 +230,23 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    let payload: unknown;
-    try {
-      payload = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
+    const bodyResult = await parseJsonBody(request);
+    if (hasRouteError(bodyResult)) {
+      return bodyResult.error;
     }
 
-    const parsed = addOccurrenceSchema.safeParse(payload);
+    const parsed = addOccurrenceSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       const message =
         parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const { weekStartDate, weekEndDate } = getDateContext(
       user.tz ?? undefined,
@@ -377,32 +327,23 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    let payload: unknown;
-    try {
-      payload = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
+    const bodyResult = await parseJsonBody(request);
+    if (hasRouteError(bodyResult)) {
+      return bodyResult.error;
     }
 
-    const parsed = updateOccurrenceSchema.safeParse(payload);
+    const parsed = updateOccurrenceSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       const message =
         parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const { weekStartDate, weekEndDate } = getDateContext(
       user.tz ?? undefined,
@@ -497,32 +438,23 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    let payload: unknown;
-    try {
-      payload = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
+    const bodyResult = await parseJsonBody(request);
+    if (hasRouteError(bodyResult)) {
+      return bodyResult.error;
     }
 
-    const parsed = deleteOccurrenceSchema.safeParse(payload);
+    const parsed = deleteOccurrenceSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       const message =
         parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const { weekStartDate, weekEndDate } = getDateContext(
       user.tz ?? undefined,

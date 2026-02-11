@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prismaClient";
-import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { prisma } from "@/lib/prismaClient";
+import { requireRequestUser } from "@/lib/api/auth";
+import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 
 type HabitPayload = {
   title?: string;
@@ -13,32 +14,6 @@ type HabitPayload = {
   freq_per_week?: number | string;
   context_tags?: string[] | string;
 };
-
-async function requireAuthUserEmail() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-
-  const email = data.user?.email;
-  if (error || !email) {
-    return {
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-    };
-  }
-
-  return { email };
-}
-
-async function requireDbUser(email: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
-
-  if (!user) {
-    return {
-      error: NextResponse.json({ error: "User not found" }, { status: 404 }),
-    };
-  }
-
-  return { user };
-}
 
 function computeHasMicro(
   microTitle: string | null | undefined,
@@ -133,24 +108,21 @@ const habitUpdateSchema = z
     context_tags: tagsSchema.optional(),
   })
   .refine(
-    ({ id, ...rest }) =>
-      Object.values(rest).some((value) => value !== undefined),
+    (value) =>
+      Object.entries(value).some(
+        ([key, fieldValue]) => key !== "id" && fieldValue !== undefined,
+      ),
     { message: "No fields to update", path: ["fields"] },
   );
 
 export async function POST(request: Request) {
   try {
-    let payload: HabitPayload;
-    try {
-      payload = (await request.json()) as HabitPayload;
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
+    const bodyResult = await parseJsonBody<HabitPayload>(request);
+    if (hasRouteError(bodyResult)) {
+      return bodyResult.error;
     }
 
-    const parsed = habitCreateSchema.safeParse(payload);
+    const parsed = habitCreateSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       const issuePath = parsed.error.issues[0]?.path?.[0];
       const fieldLabel = issuePath ? String(issuePath) : "field";
@@ -160,15 +132,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const {
       title,
@@ -218,15 +186,11 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const habits = await prisma.habit.findMany({
       where: { user_id: user.id },
@@ -245,32 +209,23 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    let payload: unknown;
-    try {
-      payload = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 },
-      );
+    const bodyResult = await parseJsonBody(request);
+    if (hasRouteError(bodyResult)) {
+      return bodyResult.error;
     }
 
-    const parsed = habitUpdateSchema.safeParse(payload);
+    const parsed = habitUpdateSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       const firstIssue = parsed.error.issues[0];
       const message = firstIssue?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const { email, error: authError } = await requireAuthUserEmail();
-    if (authError) {
-      return authError;
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
     }
-
-    const { user, error: userError } = await requireDbUser(email);
-    if (userError) {
-      return userError;
-    }
+    const user = userResult.data;
 
     const habit = await prisma.habit.findFirst({
       where: { id: parsed.data.id, user_id: user.id },
