@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +27,10 @@ type HabitFormState = {
   micro_weight_cu: string;
 };
 
+export type HabitCreateInitialValues = Partial<HabitFormState> & {
+  hasMicro?: boolean;
+};
+
 const initialState: HabitFormState = {
   title: "",
   description: "",
@@ -39,21 +43,44 @@ const initialState: HabitFormState = {
 
 type HabitCreateDialogProps = {
   onHabitCreated?: (habit: HabitListItem) => void;
+  trigger?: ReactNode;
+  initialValues?: HabitCreateInitialValues;
 };
 
-export function HabitCreateDialog({ onHabitCreated }: HabitCreateDialogProps) {
+export function HabitCreateDialog({
+  onHabitCreated,
+  trigger,
+  initialValues,
+}: HabitCreateDialogProps) {
+  const buildInitialFormState = useCallback(
+    (): HabitFormState => ({
+      ...initialState,
+      ...initialValues,
+      freq_type:
+        initialValues?.freq_type === "daily" || initialValues?.freq_type === "weekly"
+          ? initialValues.freq_type
+          : initialState.freq_type,
+    }),
+    [initialValues],
+  );
+
   const [open, setOpen] = useState(false);
-  const [hasMicro, setHasMicro] = useState(false);
-  const [formState, setFormState] = useState(initialState);
+  const [hasMicro, setHasMicro] = useState(Boolean(initialValues?.hasMicro));
+  const [formState, setFormState] = useState<HabitFormState>(buildInitialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const resetForm = useCallback(() => {
+    setFormState(buildInitialFormState());
+    setHasMicro(Boolean(initialValues?.hasMicro));
+    setError(null);
+  }, [buildInitialFormState, initialValues?.hasMicro]);
+
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
+    resetForm();
     if (!nextOpen) {
-      setFormState(initialState);
-      setHasMicro(false);
-      setError(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -133,7 +160,7 @@ export function HabitCreateDialog({ onHabitCreated }: HabitCreateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button">Add habit</Button>
+        {trigger ?? <Button type="button">Add habit</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[460px]">
         <form onSubmit={handleSubmit} className="space-y-4">

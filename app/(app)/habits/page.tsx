@@ -1,30 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { HabitCreateDialog } from "./HabitCreateDialog";
-import { HabitEditDialog } from "./HabitEditDialog";
+import { HabitCard } from "./HabitCard";
+import { HabitsEmptyState } from "./HabitsEmptyState";
 import type { HabitListItem } from "./types";
-
-function formatSchedule(habit: HabitListItem) {
-  const freqType = habit.freq_type?.trim() || "weekly";
-  const freqCount = habit.freq_per_week ?? "0";
-
-  if (freqType === "daily") {
-    return "Daily";
-  }
-
-  if (freqType === "weekly") {
-    return `${freqCount}x per week`;
-  }
-
-  return `${freqType} • ${freqCount}`;
-}
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState<HabitListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingHabitId, setDeletingHabitId] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +68,52 @@ export default function HabitsPage() {
     );
   };
 
+  const handleHabitDelete = async (habit: HabitListItem) => {
+    if (deletingHabitId !== null) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      `Delete habit "${habit.title}"? This action cannot be undone.`
+    );
+    if (!shouldDelete) {
+      return;
+    }
+
+    setDeletingHabitId(habit.id);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/habits", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: habit.id }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { message?: string; error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Failed to delete habit.");
+      }
+
+      setHabits((prev) => prev.filter((item) => item.id !== habit.id));
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Failed to delete habit."
+      );
+    } finally {
+      setDeletingHabitId(null);
+    }
+  };
+
+  const hasItems = habits.length > 0;
+
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -91,9 +123,11 @@ export default function HabitsPage() {
             Track your routines and keep your streaks alive.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <HabitCreateDialog onHabitCreated={handleHabitCreated} />
-        </div>
+        {hasItems ? (
+          <div className="flex items-center gap-2">
+            <HabitCreateDialog onHabitCreated={handleHabitCreated} />
+          </div>
+        ) : null}
       </header>
 
       <div className="grid gap-4">
@@ -106,48 +140,16 @@ export default function HabitsPage() {
             {error}
           </div>
         ) : habits.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            No habits yet. Create your first one.
-          </div>
+          <HabitsEmptyState onHabitCreated={handleHabitCreated} />
         ) : (
           habits.map((habit) => (
-            <div
+            <HabitCard
               key={habit.id}
-              className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold">{habit.title}</h2>
-                  {habit.description ? (
-                    <p className="text-sm text-muted-foreground">
-                      {habit.description}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <HabitEditDialog
-                    habit={habit}
-                    onHabitUpdated={handleHabitUpdated}
-                  />
-                  <Button type="button" variant="outline" size="sm" disabled>
-                    Archive
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full border border-border/70 bg-background px-2 py-1">
-                  {formatSchedule(habit)}
-                </span>
-                <span className="rounded-full border border-border/70 bg-background px-2 py-1">
-                  Capacity: {habit.weight_cu}
-                </span>
-                {habit.has_micro ? (
-                  <span className="rounded-full border border-border/70 bg-background px-2 py-1">
-                    Micro: {habit.micro_weight_cu}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+              habit={habit}
+              isDeleting={deletingHabitId === habit.id}
+              onHabitUpdated={handleHabitUpdated}
+              onHabitDelete={handleHabitDelete}
+            />
           ))
         )}
       </div>

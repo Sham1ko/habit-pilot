@@ -115,6 +115,10 @@ const habitUpdateSchema = z
     { message: "No fields to update", path: ["fields"] },
   );
 
+const habitDeleteSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
 export async function POST(request: Request) {
   try {
     const bodyResult = await parseJsonBody<HabitPayload>(request);
@@ -291,6 +295,48 @@ export async function PATCH(request: Request) {
     );
   } catch (error) {
     console.error("Update habit error:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const bodyResult = await parseJsonBody(request);
+    if (hasRouteError(bodyResult)) {
+      return bodyResult.error;
+    }
+
+    const parsed = habitDeleteSchema.safeParse(bodyResult.data);
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message ?? "Invalid request body";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    const userResult = await requireRequestUser();
+    if (hasRouteError(userResult)) {
+      return userResult.error;
+    }
+    const user = userResult.data;
+
+    const habit = await prisma.habit.findFirst({
+      where: { id: parsed.data.id, user_id: user.id },
+      select: { id: true },
+    });
+
+    if (!habit) {
+      return NextResponse.json({ error: "Habit not found" }, { status: 404 });
+    }
+
+    await prisma.habit.delete({
+      where: { id: habit.id },
+    });
+
+    return NextResponse.json({ message: "Habit deleted" }, { status: 200 });
+  } catch (error) {
+    console.error("Delete habit error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 },
