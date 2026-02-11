@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, MoreHorizontal } from "lucide-react";
+import { CornerDownRight, Info, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -72,7 +72,8 @@ export function HabitCard({
             {habit.description ? <span aria-hidden>•</span> : null}
             <span>{formatSchedule(habit)}</span>
             {habit.has_micro ? (
-              <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-xs">
+              <span className="flex gap-1 items-center rounded-full border border-border/70 bg-background px-2 py-0.5 text-xs">
+                <CornerDownRight className="size-3" />
                 Micro-step
               </span>
             ) : null}
