@@ -1,5 +1,6 @@
-import Sidebar from "@/components/sidebar";
+import AppSidebar from "@/components/sidebar";
 import OnboardingModal from "@/components/onboarding-modal";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function AppLayout({
   children,
@@ -7,12 +8,15 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <div className="flex min-h-screen flex-col md:flex-row">
-        <Sidebar />
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-2 border-b px-6">
+          <SidebarTrigger />
+        </header>
         <main className="flex-1 p-6 md:px-10 md:py-10">{children}</main>
         <OnboardingModal />
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
