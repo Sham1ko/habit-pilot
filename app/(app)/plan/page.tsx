@@ -1,46 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Info, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { CapacityMeter } from "./capacity-meter";
+import { DayColumn } from "./day-column";
+import {
+  buildWeekPlanIcs,
+  formatCu,
+  formatDayLabel,
+  getWeekStartDate,
+  shiftIsoDate,
+} from "./plan-utils";
+import {
+  type OverloadMicroSuggestion,
+  type OverloadMoveSuggestion,
+  RemainingHabitsPanel,
+} from "./remaining-habits-panel";
+import { SetCapacityModal } from "./set-capacity-modal";
+import type {
+  PlanData,
+  PlanDay,
+  PlanOccurrence,
+  RemainingHabit,
+} from "./types";
+import { WeekSwitcher } from "./week-switcher";
 
-type PlanOccurrence = {
-  id: string;
-  habit_id: number;
-  habit_title: string;
-  planned_weight_cu: number;
-  context_tag: string | null;
-  habit_weight_cu: number;
-  habit_has_micro: boolean;
-  habit_micro_weight_cu: number;
-};
-
-type PlanDay = {
-  date: string;
-  planned_cu: number;
-  occurrences: PlanOccurrence[];
-};
-
-type HabitOption = {
-  id: number;
-  title: string;
-  weight_cu: number;
-  has_micro: boolean;
-  micro_weight_cu: number;
-  context_tags: string[];
-};
-
-type PlanData = {
-  week_start_date: string;
-  week_end_date: string;
-  today_date: string;
-  weekly_capacity_cu: number | null;
-  planned_cu: number;
-  days: PlanDay[];
-  habits: HabitOption[];
-};
+const SAVE_DEBOUNCE_MS = 450;
+const SAVE_STATE_TIMEOUT_MS = 1400;
 
 type PlanResponse = {
   week_start_date: string;
@@ -66,6 +63,7 @@ type PlanResponse = {
     id: number;
     title: string;
     weight_cu: string;
+    freq_per_week: string;
     has_micro: boolean;
     micro_weight_cu: string;
     context_tags: string[];
@@ -94,19 +92,70 @@ type DeleteResponse = {
   error?: string;
 };
 
-type DaySelection = {
-  habitId?: number;
-  contextTag?: string;
+type CapacityResponse = {
+  week_start_date: string;
+  week_end_date: string;
+  capacity_cu: string;
+  planned_cu: string;
+  error?: string;
 };
+
+type SaveStatus = "idle" | "saving" | "saved";
+
+type ToastState = {
+  id: number;
+  message: string;
+};
+
+type PlanMutation =
+  | {
+      kind: "add";
+      clientOccurrenceId: string;
+      date: string;
+      habitId: number;
+      contextTag: string | null;
+    }
+  | {
+      kind: "move";
+      occurrenceId: string;
+      date: string;
+    }
+  | {
+      kind: "unplan";
+      occurrenceId: string;
+    }
+  | {
+      kind: "convert_micro";
+      occurrenceId: string;
+      plannedWeightCu: number;
+    }
+  | {
+      kind: "set_capacity";
+      weekStartDate: string;
+      capacityCu: number;
+    };
+
+const starterTemplates = [
+  {
+    title: "Study 25 min",
+    details: "5x/week, 2 CU, with micro-step",
+  },
+  {
+    title: "Workout 20 min",
+    details: "3x/week, 3 CU, with micro-step",
+  },
+  {
+    title: "Walk 20 min",
+    details: "Daily, 1 CU, low-friction",
+  },
+];
 
 function normalizePlanResponse(data: PlanResponse): PlanData {
   return {
     week_start_date: data.week_start_date,
     week_end_date: data.week_end_date,
     today_date: data.today_date,
-    weekly_capacity_cu: data.weekly_capacity_cu
-      ? Number(data.weekly_capacity_cu)
-      : null,
+    weekly_capacity_cu: data.weekly_capacity_cu ? Number(data.weekly_capacity_cu) : null,
     planned_cu: Number(data.planned_cu),
     days: data.days.map((day) => ({
       date: day.date,
@@ -121,48 +170,11 @@ function normalizePlanResponse(data: PlanResponse): PlanData {
     habits: data.habits.map((habit) => ({
       ...habit,
       weight_cu: Number(habit.weight_cu),
+      freq_per_week: Number(habit.freq_per_week),
       micro_weight_cu: Number(habit.micro_weight_cu),
       context_tags: habit.context_tags ?? [],
     })),
   };
-}
-
-function formatCu(value: number) {
-  if (!Number.isFinite(value)) {
-    return "0";
-  }
-  const rounded = Math.round(value * 10) / 10;
-  return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
-}
-
-function formatWeekRange(start: string, end: string) {
-  const startDate = new Date(`${start}T00:00:00Z`);
-  const endDate = new Date(`${end}T00:00:00Z`);
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  return `${formatter.format(startDate)} - ${formatter.format(endDate)}`;
-}
-
-function getIsoWeekNumber(dateString: string) {
-  const date = new Date(`${dateString}T00:00:00Z`);
-  const day = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(
-    ((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
-  );
-  return weekNo;
-}
-
-function formatDayLabel(dateString: string) {
-  const date = new Date(`${dateString}T00:00:00Z`);
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(date);
 }
 
 function recalcPlan(days: PlanDay[]) {
@@ -173,303 +185,381 @@ function recalcPlan(days: PlanDay[]) {
       0,
     ),
   }));
-  const plannedTotal = recalculatedDays.reduce(
-    (sum, day) => sum + day.planned_cu,
-    0,
-  );
 
-  return { days: recalculatedDays, planned_cu: plannedTotal };
+  return {
+    days: recalculatedDays,
+    planned_cu: recalculatedDays.reduce((sum, day) => sum + day.planned_cu, 0),
+  };
+}
+
+function createTempOccurrenceId() {
+  return `temp-${Date.now()}-${Math.round(Math.random() * 100000)}`;
 }
 
 export default function PlanPage() {
   const [data, setData] = useState<PlanData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [pendingDays, setPendingDays] = useState<string[]>([]);
-  const [pendingOccurrences, setPendingOccurrences] = useState<string[]>([]);
-  const [daySelections, setDaySelections] = useState<
-    Record<string, DaySelection>
-  >({});
-  const [quickAssign, setQuickAssign] = useState<DaySelection>({});
-  const [contextEdits, setContextEdits] = useState<Record<string, string>>({});
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [isCapacityModalOpen, setIsCapacityModalOpen] = useState(false);
+
+  const queueRef = useRef<PlanMutation[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFlushingRef = useRef(false);
+  const idMapRef = useRef<Map<string, string>>(new Map());
+  const activeWeekStartRef = useRef<string | null>(null);
+  const toastCounterRef = useRef(0);
+
+  const showErrorToast = useCallback((message: string) => {
+    toastCounterRef.current += 1;
+    setToast({ id: toastCounterRef.current, message });
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!toast) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 3500);
 
-    const loadPlan = async () => {
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const loadPlan = useCallback(
+    async (weekStart?: string, options?: { showLoading?: boolean }) => {
+      const showLoading = options?.showLoading ?? true;
+
+      if (showLoading) {
+        setIsLoading(true);
+      }
+
+      setError(null);
+
       try {
-        const response = await fetch("/api/plan");
-        const responseData = (await response.json().catch(() => null)) as
-          | PlanResponse
-          | null;
+        const query = weekStart ? `?week_start=${encodeURIComponent(weekStart)}` : "";
+        const response = await fetch(`/api/plan${query}`);
+        const responseData = (await response.json().catch(() => null)) as PlanResponse | null;
 
         if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to load plan.");
+          throw new Error(responseData?.error ?? "Failed to load weekly plan.");
         }
 
-        if (isMounted) {
-          setData(normalizePlanResponse(responseData));
-        }
+        const normalized = normalizePlanResponse(responseData);
+        activeWeekStartRef.current = normalized.week_start_date;
+        idMapRef.current.clear();
+        setData(normalized);
       } catch (loadError) {
-        if (isMounted) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Failed to load plan.",
-          );
-        }
+        setError(
+          loadError instanceof Error ? loadError.message : "Failed to load weekly plan.",
+        );
       } finally {
-        if (isMounted) {
+        if (showLoading) {
           setIsLoading(false);
         }
       }
-    };
-
-    loadPlan();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const totalOccurrences = useMemo(() => {
-    if (!data) {
-      return 0;
-    }
-    return data.days.reduce(
-      (sum, day) => sum + day.occurrences.length,
-      0,
-    );
-  }, [data]);
-
-  const weekNumber = data ? getIsoWeekNumber(data.week_start_date) : null;
-  const weekRange = data
-    ? formatWeekRange(data.week_start_date, data.week_end_date)
-    : "";
-
-  const weeklyCapacity = data?.weekly_capacity_cu ?? null;
-  const plannedCu = data?.planned_cu ?? 0;
-  const capacityRatio =
-    weeklyCapacity && weeklyCapacity > 0 ? plannedCu / weeklyCapacity : 0;
-  const capacityState =
-    capacityRatio > 1 ? "over" : capacityRatio > 0.9 ? "high" : "ok";
-
-  const lightestDay = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-    const today = data.today_date;
-    const availableDays = data.days.filter((day) => day.date >= today);
-    const daysToCheck = availableDays.length > 0 ? availableDays : data.days;
-    return daysToCheck.reduce((lowest, day) =>
-      day.planned_cu < lowest.planned_cu ? day : lowest,
-    );
-  }, [data]);
-
-  const largestOccurrence = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-    const occurrences = data.days.flatMap((day) =>
-      day.occurrences.map((occurrence) => ({
-        ...occurrence,
-        day: day.date,
-      })),
-    );
-    if (occurrences.length === 0) {
-      return null;
-    }
-    return occurrences.reduce((largest, current) =>
-      current.planned_weight_cu > largest.planned_weight_cu ? current : largest,
-    );
-  }, [data]);
-
-  const suggestedMicro = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-    const candidates = data.days.flatMap((day) =>
-      day.occurrences
-        .filter(
-          (occurrence) =>
-            occurrence.habit_has_micro &&
-            occurrence.habit_micro_weight_cu > 0 &&
-            occurrence.planned_weight_cu >
-              occurrence.habit_micro_weight_cu,
-        )
-        .map((occurrence) => ({
-          ...occurrence,
-          day: day.date,
-          savings:
-            occurrence.planned_weight_cu - occurrence.habit_micro_weight_cu,
-        })),
-    );
-    if (candidates.length === 0) {
-      return null;
-    }
-    return candidates.reduce((best, current) =>
-      current.savings > best.savings ? current : best,
-    );
-  }, [data]);
-
-  const isOverCapacity =
-    weeklyCapacity !== null && weeklyCapacity > 0 && plannedCu > weeklyCapacity;
-  const overBy =
-    weeklyCapacity !== null ? Math.max(plannedCu - weeklyCapacity, 0) : 0;
-
-  const capacityBarClass = cn(
-    "h-2 rounded-full transition-all",
-    capacityState === "over" && "bg-rose-500",
-    capacityState === "high" && "bg-amber-500",
-    capacityState === "ok" && "bg-emerald-500",
-  );
-
-  const handleDaySelection = useCallback(
-    (date: string, habitId: string) => {
-      const idValue = habitId ? Number(habitId) : undefined;
-      setDaySelections((prev) => {
-        const habit = data?.habits.find((item) => item.id === idValue);
-        const nextContext =
-          habit?.context_tags?.[0] ?? prev[date]?.contextTag ?? "";
-        return {
-          ...prev,
-          [date]: { habitId: idValue, contextTag: nextContext },
-        };
-      });
-    },
-    [data],
-  );
-
-  const handleDayContextChange = useCallback(
-    (date: string, contextTag: string) => {
-      setDaySelections((prev) => ({
-        ...prev,
-        [date]: { ...prev[date], contextTag },
-      }));
     },
     [],
   );
 
-  const handleQuickAssign = useCallback(
-    (habitId: string) => {
-      const idValue = habitId ? Number(habitId) : undefined;
-      setQuickAssign((prev) => {
-        const habit = data?.habits.find((item) => item.id === idValue);
-        const nextContext =
-          habit?.context_tags?.[0] ?? prev.contextTag ?? "";
-        return { habitId: idValue, contextTag: nextContext };
-      });
-    },
-    [data],
-  );
+  useEffect(() => {
+    void loadPlan();
+  }, [loadPlan]);
 
-  const handleQuickContextChange = useCallback((contextTag: string) => {
-    setQuickAssign((prev) => ({ ...prev, contextTag }));
+  useEffect(() => {
+    activeWeekStartRef.current = data?.week_start_date ?? null;
+  }, [data]);
+
+  const resolveOccurrenceId = useCallback((occurrenceId: string) => {
+    return idMapRef.current.get(occurrenceId) ?? occurrenceId;
   }, []);
 
-  const applyOccurrenceResponse = useCallback(
-    (response: OccurrenceResponse) => {
-      setData((prev) => {
-        if (!prev) {
-          return prev;
+  const executeMutation = useCallback(
+    async (mutation: PlanMutation) => {
+      if (mutation.kind === "add") {
+        const response = await fetch("/api/plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date: mutation.date,
+            habit_id: mutation.habitId,
+            context_tag: mutation.contextTag,
+          }),
+        });
+
+        const responseData = (await response.json().catch(() => null)) as
+          | OccurrenceResponse
+          | null;
+
+        if (!response.ok || !responseData) {
+          throw new Error(responseData?.error ?? "Failed to save added occurrence.");
         }
 
-        const occurrence = response.occurrence;
-        const updatedOccurrence: PlanOccurrence = {
-          id: occurrence.id,
-          habit_id: occurrence.habit_id,
-          habit_title: occurrence.habit_title,
-          planned_weight_cu: Number(occurrence.planned_weight_cu),
-          context_tag: occurrence.context_tag,
-          habit_weight_cu: Number(occurrence.habit_weight_cu),
-          habit_has_micro: occurrence.habit_has_micro,
-          habit_micro_weight_cu: Number(occurrence.habit_micro_weight_cu),
-        };
+        idMapRef.current.set(mutation.clientOccurrenceId, responseData.occurrence.id);
 
-        const days = prev.days.map((day) => {
-          if (day.date !== occurrence.date) {
-            const filtered = day.occurrences.filter(
-              (item) => item.id !== occurrence.id,
-            );
-            return filtered.length === day.occurrences.length
-              ? day
-              : { ...day, occurrences: filtered };
+        setData((prev) => {
+          if (!prev) {
+            return prev;
           }
 
-          const existingIndex = day.occurrences.findIndex(
-            (item) => item.id === occurrence.id,
-          );
+          const nextOccurrence: PlanOccurrence = {
+            id: responseData.occurrence.id,
+            habit_id: responseData.occurrence.habit_id,
+            habit_title: responseData.occurrence.habit_title,
+            planned_weight_cu: Number(responseData.occurrence.planned_weight_cu),
+            context_tag: responseData.occurrence.context_tag,
+            habit_weight_cu: Number(responseData.occurrence.habit_weight_cu),
+            habit_has_micro: responseData.occurrence.habit_has_micro,
+            habit_micro_weight_cu: Number(responseData.occurrence.habit_micro_weight_cu),
+          };
 
-          if (existingIndex >= 0) {
-            const nextOccurrences = [...day.occurrences];
-            nextOccurrences[existingIndex] = updatedOccurrence;
-            return { ...day, occurrences: nextOccurrences };
-          }
+          const days = prev.days.map((day) => ({
+            ...day,
+            occurrences: day.occurrences.map((occurrence) =>
+              occurrence.id === mutation.clientOccurrenceId ? nextOccurrence : occurrence,
+            ),
+          }));
+
+          const recalculated = recalcPlan(days);
 
           return {
-            ...day,
-            occurrences: [...day.occurrences, updatedOccurrence],
+            ...prev,
+            days: recalculated.days,
+            planned_cu: recalculated.planned_cu,
           };
         });
 
-        const recalculated = recalcPlan(days);
-        return {
-          ...prev,
-          days: recalculated.days,
-          planned_cu: Number(response.planned_cu),
-        };
+        return;
+      }
+
+      if (mutation.kind === "move") {
+        const occurrenceId = resolveOccurrenceId(mutation.occurrenceId);
+
+        const response = await fetch("/api/plan", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occurrence_id: occurrenceId,
+            date: mutation.date,
+          }),
+        });
+
+        const responseData = (await response.json().catch(() => null)) as
+          | OccurrenceResponse
+          | null;
+
+        if (!response.ok || !responseData) {
+          throw new Error(responseData?.error ?? "Failed to move planned occurrence.");
+        }
+
+        return;
+      }
+
+      if (mutation.kind === "unplan") {
+        const occurrenceId = resolveOccurrenceId(mutation.occurrenceId);
+
+        const response = await fetch("/api/plan", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occurrence_id: occurrenceId,
+          }),
+        });
+
+        const responseData = (await response.json().catch(() => null)) as DeleteResponse | null;
+
+        if (!response.ok || !responseData) {
+          throw new Error(responseData?.error ?? "Failed to unplan occurrence.");
+        }
+
+        return;
+      }
+
+      if (mutation.kind === "convert_micro") {
+        const occurrenceId = resolveOccurrenceId(mutation.occurrenceId);
+
+        const response = await fetch("/api/plan", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occurrence_id: occurrenceId,
+            planned_weight_cu: mutation.plannedWeightCu,
+          }),
+        });
+
+        const responseData = (await response.json().catch(() => null)) as
+          | OccurrenceResponse
+          | null;
+
+        if (!response.ok || !responseData) {
+          throw new Error(responseData?.error ?? "Failed to convert to micro-step.");
+        }
+
+        return;
+      }
+
+      const response = await fetch("/api/plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          week_start_date: mutation.weekStartDate,
+          capacity_cu: mutation.capacityCu,
+        }),
       });
+
+      const responseData = (await response.json().catch(() => null)) as CapacityResponse | null;
+
+      if (!response.ok || !responseData) {
+        throw new Error(responseData?.error ?? "Failed to update weekly capacity.");
+      }
     },
-    [],
+    [resolveOccurrenceId],
   );
 
+  const flushMutations = useCallback(async () => {
+    if (isFlushingRef.current || queueRef.current.length === 0) {
+      return;
+    }
+
+    isFlushingRef.current = true;
+    setSaveStatus("saving");
+
+    let failureMessage: string | null = null;
+
+    while (queueRef.current.length > 0) {
+      const mutation = queueRef.current.shift();
+      if (!mutation) {
+        break;
+      }
+
+      try {
+        await executeMutation(mutation);
+      } catch (mutationError) {
+        failureMessage =
+          mutationError instanceof Error
+            ? mutationError.message
+            : "Failed to save plan changes.";
+        queueRef.current = [];
+        break;
+      }
+    }
+
+    isFlushingRef.current = false;
+
+    if (failureMessage) {
+      setSaveStatus("idle");
+      showErrorToast(failureMessage);
+      void loadPlan(activeWeekStartRef.current ?? undefined, { showLoading: false });
+      return;
+    }
+
+    setSaveStatus("saved");
+
+    if (saveStateTimerRef.current) {
+      window.clearTimeout(saveStateTimerRef.current);
+    }
+
+    saveStateTimerRef.current = window.setTimeout(() => {
+      setSaveStatus("idle");
+    }, SAVE_STATE_TIMEOUT_MS);
+  }, [executeMutation, loadPlan, showErrorToast]);
+
+  const enqueueMutation = useCallback(
+    (mutation: PlanMutation) => {
+      if (mutation.kind === "set_capacity") {
+        queueRef.current = queueRef.current.filter((item) => {
+          return !(
+            item.kind === "set_capacity" && item.weekStartDate === mutation.weekStartDate
+          );
+        });
+      }
+
+      queueRef.current.push(mutation);
+      setSaveStatus("saving");
+
+      if (saveStateTimerRef.current) {
+        window.clearTimeout(saveStateTimerRef.current);
+        saveStateTimerRef.current = null;
+      }
+
+      if (flushTimerRef.current) {
+        window.clearTimeout(flushTimerRef.current);
+      }
+
+      flushTimerRef.current = window.setTimeout(() => {
+        void flushMutations();
+      }, SAVE_DEBOUNCE_MS);
+    },
+    [flushMutations],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current) {
+        window.clearTimeout(flushTimerRef.current);
+      }
+      if (saveStateTimerRef.current) {
+        window.clearTimeout(saveStateTimerRef.current);
+      }
+    };
+  }, []);
+
   const addOccurrence = useCallback(
-    async (date: string, habitId: number, contextTag?: string) => {
-      if (!data) {
-        return;
-      }
+    (habitId: number, date: string) => {
+      let pendingMutation: PlanMutation | null = null;
+      let validationError: string | null = null;
 
-      const day = data.days.find((item) => item.date === date);
-      if (!day) {
-        return;
-      }
-
-      if (day.occurrences.some((item) => item.habit_id === habitId)) {
-        setActionError("That habit is already planned for this day.");
-        return;
-      }
-
-      const habit = data.habits.find((item) => item.id === habitId);
-      if (!habit) {
-        return;
-      }
-
-      setActionError(null);
-      const snapshot = data;
-      const tempId = `temp-${Date.now()}`;
-      const nextOccurrence: PlanOccurrence = {
-        id: tempId,
-        habit_id: habit.id,
-        habit_title: habit.title,
-        planned_weight_cu: habit.weight_cu,
-        context_tag: contextTag?.trim() || null,
-        habit_weight_cu: habit.weight_cu,
-        habit_has_micro: habit.has_micro,
-        habit_micro_weight_cu: habit.micro_weight_cu,
-      };
-
-      setPendingDays((prev) => [...prev, date]);
       setData((prev) => {
         if (!prev) {
           return prev;
         }
-        const days = prev.days.map((item) =>
-          item.date === date
-            ? { ...item, occurrences: [...item.occurrences, nextOccurrence] }
-            : item,
+
+        const habit = prev.habits.find((item) => item.id === habitId);
+        const targetDay = prev.days.find((day) => day.date === date);
+
+        if (!habit || !targetDay) {
+          validationError = "Cannot add habit to this day.";
+          return prev;
+        }
+
+        if (targetDay.occurrences.some((item) => item.habit_id === habitId)) {
+          validationError = "That habit is already planned for this day.";
+          return prev;
+        }
+
+        const tempId = createTempOccurrenceId();
+        const optimisticOccurrence: PlanOccurrence = {
+          id: tempId,
+          habit_id: habit.id,
+          habit_title: habit.title,
+          planned_weight_cu: habit.weight_cu,
+          context_tag: habit.context_tags[0] ?? null,
+          habit_weight_cu: habit.weight_cu,
+          habit_has_micro: habit.has_micro,
+          habit_micro_weight_cu: habit.micro_weight_cu,
+        };
+
+        const days = prev.days.map((day) =>
+          day.date === date
+            ? {
+                ...day,
+                occurrences: [...day.occurrences, optimisticOccurrence],
+              }
+            : day,
         );
+
         const recalculated = recalcPlan(days);
+
+        pendingMutation = {
+          kind: "add",
+          clientOccurrenceId: tempId,
+          date,
+          habitId,
+          contextTag: optimisticOccurrence.context_tag,
+        };
+
         return {
           ...prev,
           days: recalculated.days,
@@ -477,763 +567,701 @@ export default function PlanPage() {
         };
       });
 
-      try {
-        const response = await fetch("/api/plan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            date,
-            habit_id: habit.id,
-            context_tag: contextTag?.trim() || null,
-          }),
-        });
-
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
-
-        if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to add habit.");
-        }
-
-        setData((prev) => {
-          if (!prev) {
-            return prev;
-          }
-          const days = prev.days.map((item) => ({
-            ...item,
-            occurrences: item.occurrences.map((occurrence) =>
-              occurrence.id === tempId
-                ? {
-                    ...occurrence,
-                    id: responseData.occurrence.id,
-                    planned_weight_cu: Number(
-                      responseData.occurrence.planned_weight_cu,
-                    ),
-                    context_tag: responseData.occurrence.context_tag,
-                  }
-                : occurrence,
-            ),
-          }));
-          const recalculated = recalcPlan(days);
-          return {
-            ...prev,
-            days: recalculated.days,
-            planned_cu: Number(responseData.planned_cu),
-          };
-        });
-        setDaySelections((prev) => ({
-          ...prev,
-          [date]: { habitId: undefined, contextTag: "" },
-        }));
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to add habit.";
-        setActionError(message);
-        setData(snapshot);
-      } finally {
-        setPendingDays((prev) => prev.filter((item) => item !== date));
-      }
-    },
-    [data],
-  );
-
-  const handleAddOccurrence = useCallback(
-    async (date: string) => {
-      const selection = daySelections[date];
-      if (!selection?.habitId) {
-        return;
-      }
-      await addOccurrence(date, selection.habitId, selection.contextTag);
-    },
-    [addOccurrence, daySelections],
-  );
-
-  const handleQuickSuggest = useCallback(async () => {
-    if (!data || !lightestDay || !quickAssign.habitId) {
-      return;
-    }
-
-    const targetDate = lightestDay.date;
-    setDaySelections((prev) => ({
-      ...prev,
-      [targetDate]: {
-        habitId: quickAssign.habitId,
-        contextTag: quickAssign.contextTag,
-      },
-    }));
-    await addOccurrence(targetDate, quickAssign.habitId, quickAssign.contextTag);
-  }, [addOccurrence, data, lightestDay, quickAssign]);
-
-  const handleMoveOccurrence = useCallback(
-    async (occurrenceId: string, targetDate: string) => {
-      if (!data) {
+      if (validationError) {
+        showErrorToast(validationError);
         return;
       }
 
-      setActionError(null);
-      const snapshot = data;
-      setPendingOccurrences((prev) => [...prev, occurrenceId]);
+      if (pendingMutation) {
+        enqueueMutation(pendingMutation);
+      }
+    },
+    [enqueueMutation, showErrorToast],
+  );
+
+  const moveOccurrence = useCallback(
+    (occurrenceId: string, targetDate: string) => {
+      let pendingMutation: PlanMutation | null = null;
+      let validationError: string | null = null;
 
       setData((prev) => {
         if (!prev) {
           return prev;
         }
 
-        let movedOccurrence: PlanOccurrence | null = null;
-        const daysWithout = prev.days.map((day) => {
-          const filtered = day.occurrences.filter((item) => {
-            if (item.id === occurrenceId) {
-              movedOccurrence = item;
+        let sourceOccurrence: PlanOccurrence | null = null;
+        let sourceDate: string | null = null;
+
+        const withoutSource = prev.days.map((day) => {
+          const remaining = day.occurrences.filter((occurrence) => {
+            if (occurrence.id === occurrenceId) {
+              sourceOccurrence = occurrence;
+              sourceDate = day.date;
               return false;
             }
             return true;
           });
-          return filtered.length === day.occurrences.length
+
+          return remaining.length === day.occurrences.length
             ? day
-            : { ...day, occurrences: filtered };
+            : { ...day, occurrences: remaining };
         });
 
-        if (!movedOccurrence) {
+        if (!sourceOccurrence || !sourceDate) {
           return prev;
         }
 
-        const days = daysWithout.map((day) =>
-          day.date === targetDate
-            ? { ...day, occurrences: [...day.occurrences, movedOccurrence!] }
-            : day,
-        );
-
-        const recalculated = recalcPlan(days);
-        return { ...prev, days: recalculated.days, planned_cu: recalculated.planned_cu };
-      });
-
-      try {
-        const response = await fetch("/api/plan", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            occurrence_id: occurrenceId,
-            date: targetDate,
-          }),
-        });
-
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
-
-        if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to move habit.");
-        }
-
-        applyOccurrenceResponse(responseData);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to move habit.";
-        setActionError(message);
-        setData(snapshot);
-      } finally {
-        setPendingOccurrences((prev) =>
-          prev.filter((item) => item !== occurrenceId),
-        );
-      }
-    },
-    [applyOccurrenceResponse, data],
-  );
-
-  const handleRemoveOccurrence = useCallback(
-    async (occurrenceId: string) => {
-      if (!data) {
-        return;
-      }
-
-      setActionError(null);
-      const snapshot = data;
-      setPendingOccurrences((prev) => [...prev, occurrenceId]);
-
-      setData((prev) => {
-        if (!prev) {
+        if (sourceDate === targetDate) {
           return prev;
         }
 
-        const days = prev.days.map((day) => ({
-          ...day,
-          occurrences: day.occurrences.filter(
-            (item) => item.id !== occurrenceId,
-          ),
-        }));
-        const recalculated = recalcPlan(days);
-        return { ...prev, days: recalculated.days, planned_cu: recalculated.planned_cu };
-      });
+        const targetDay = withoutSource.find((day) => day.date === targetDate);
 
-      try {
-        const response = await fetch("/api/plan", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ occurrence_id: occurrenceId }),
-        });
-
-        const responseData = (await response.json().catch(() => null)) as
-          | DeleteResponse
-          | null;
-
-        if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to remove habit.");
-        }
-
-        setData((prev) =>
-          prev ? { ...prev, planned_cu: Number(responseData.planned_cu) } : prev,
-        );
-        setContextEdits((prev) => {
-          if (!(occurrenceId in prev)) {
+        if (targetDay) {
+          if (targetDay.occurrences.some((item) => item.habit_id === sourceOccurrence?.habit_id)) {
+            validationError = "That habit is already planned on the selected day.";
             return prev;
           }
-          const next = { ...prev };
-          delete next[occurrenceId];
-          return next;
-        });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to remove habit.";
-        setActionError(message);
-        setData(snapshot);
-      } finally {
-        setPendingOccurrences((prev) =>
-          prev.filter((item) => item !== occurrenceId),
-        );
-      }
-    },
-    [data],
-  );
 
-  const handleUpdateContext = useCallback(
-    async (occurrenceId: string, contextTag: string) => {
-      if (!data) {
-        return;
-      }
+          const days = withoutSource.map((day) =>
+            day.date === targetDate
+              ? {
+                  ...day,
+                  occurrences: [...day.occurrences, sourceOccurrence!],
+                }
+              : day,
+          );
 
-      setActionError(null);
-      const snapshot = data;
-      setPendingOccurrences((prev) => [...prev, occurrenceId]);
+          const recalculated = recalcPlan(days);
+          pendingMutation = {
+            kind: "move",
+            occurrenceId,
+            date: targetDate,
+          };
 
-      setData((prev) => {
-        if (!prev) {
-          return prev;
+          return {
+            ...prev,
+            days: recalculated.days,
+            planned_cu: recalculated.planned_cu,
+          };
         }
 
-        const days = prev.days.map((day) => ({
-          ...day,
-          occurrences: day.occurrences.map((item) =>
-            item.id === occurrenceId
-              ? { ...item, context_tag: contextTag.trim() || null }
-              : item,
-          ),
-        }));
+        const recalculated = recalcPlan(withoutSource);
+        pendingMutation = {
+          kind: "move",
+          occurrenceId,
+          date: targetDate,
+        };
 
-        return { ...prev, days };
-      });
-
-      try {
-        const response = await fetch("/api/plan", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            occurrence_id: occurrenceId,
-            context_tag: contextTag.trim() || null,
-          }),
-        });
-
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
-
-        if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to update context.");
-        }
-
-        applyOccurrenceResponse(responseData);
-        setContextEdits((prev) => ({
+        return {
           ...prev,
-          [occurrenceId]: responseData.occurrence.context_tag ?? "",
-        }));
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update context.";
-        setActionError(message);
-        setData(snapshot);
-      } finally {
-        setPendingOccurrences((prev) =>
-          prev.filter((item) => item !== occurrenceId),
-        );
+          days: recalculated.days,
+          planned_cu: recalculated.planned_cu,
+        };
+      });
+
+      if (validationError) {
+        showErrorToast(validationError);
+        return;
+      }
+
+      if (pendingMutation) {
+        enqueueMutation(pendingMutation);
       }
     },
-    [applyOccurrenceResponse, data],
+    [enqueueMutation, showErrorToast],
   );
 
-  const handleUseMicro = useCallback(
-    async (occurrence: PlanOccurrence) => {
-      if (!data) {
-        return;
-      }
-
-      if (!occurrence.habit_has_micro || occurrence.habit_micro_weight_cu <= 0) {
-        return;
-      }
-
-      setActionError(null);
-      const snapshot = data;
-      setPendingOccurrences((prev) => [...prev, occurrence.id]);
+  const unplanOccurrence = useCallback(
+    (occurrenceId: string) => {
+      let pendingMutation: PlanMutation | null = null;
 
       setData((prev) => {
         if (!prev) {
           return prev;
         }
 
-        const days = prev.days.map((day) => ({
-          ...day,
-          occurrences: day.occurrences.map((item) =>
-            item.id === occurrence.id
-              ? { ...item, planned_weight_cu: occurrence.habit_micro_weight_cu }
-              : item,
-          ),
-        }));
-        const recalculated = recalcPlan(days);
-        return { ...prev, days: recalculated.days, planned_cu: recalculated.planned_cu };
-      });
+        let removed = false;
 
-      try {
-        const response = await fetch("/api/plan", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            occurrence_id: occurrence.id,
-            planned_weight_cu: occurrence.habit_micro_weight_cu,
-          }),
+        const days = prev.days.map((day) => {
+          const remaining = day.occurrences.filter((occurrence) => {
+            if (occurrence.id === occurrenceId) {
+              removed = true;
+              return false;
+            }
+            return true;
+          });
+          return remaining.length === day.occurrences.length
+            ? day
+            : { ...day, occurrences: remaining };
         });
 
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
-
-        if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to update habit.");
+        if (!removed) {
+          return prev;
         }
 
-        applyOccurrenceResponse(responseData);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update habit.";
-        setActionError(message);
-        setData(snapshot);
-      } finally {
-        setPendingOccurrences((prev) =>
-          prev.filter((item) => item !== occurrence.id),
-        );
+        const recalculated = recalcPlan(days);
+        pendingMutation = {
+          kind: "unplan",
+          occurrenceId,
+        };
+
+        return {
+          ...prev,
+          days: recalculated.days,
+          planned_cu: recalculated.planned_cu,
+        };
+      });
+
+      if (pendingMutation) {
+        enqueueMutation(pendingMutation);
       }
     },
-    [applyOccurrenceResponse, data],
+    [enqueueMutation],
   );
 
-  if (isLoading) {
+  const convertToMicro = useCallback(
+    (occurrenceId: string) => {
+      let pendingMutation: PlanMutation | null = null;
+      let validationError: string | null = null;
+
+      setData((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        let didUpdate = false;
+
+        const days = prev.days.map((day) => ({
+          ...day,
+          occurrences: day.occurrences.map((occurrence) => {
+            if (occurrence.id !== occurrenceId) {
+              return occurrence;
+            }
+
+            if (!occurrence.habit_has_micro || occurrence.habit_micro_weight_cu <= 0) {
+              validationError = "This occurrence does not support micro-step.";
+              return occurrence;
+            }
+
+            if (occurrence.planned_weight_cu <= occurrence.habit_micro_weight_cu) {
+              validationError = "This occurrence is already at micro-step weight.";
+              return occurrence;
+            }
+
+            didUpdate = true;
+
+            pendingMutation = {
+              kind: "convert_micro",
+              occurrenceId,
+              plannedWeightCu: occurrence.habit_micro_weight_cu,
+            };
+
+            return {
+              ...occurrence,
+              planned_weight_cu: occurrence.habit_micro_weight_cu,
+            };
+          }),
+        }));
+
+        if (!didUpdate) {
+          return prev;
+        }
+
+        const recalculated = recalcPlan(days);
+
+        return {
+          ...prev,
+          days: recalculated.days,
+          planned_cu: recalculated.planned_cu,
+        };
+      });
+
+      if (validationError) {
+        showErrorToast(validationError);
+      }
+
+      if (pendingMutation) {
+        enqueueMutation(pendingMutation);
+      }
+    },
+    [enqueueMutation, showErrorToast],
+  );
+
+  const setWeeklyCapacity = useCallback(
+    (capacityCu: number) => {
+      const normalized = Math.round(capacityCu * 10) / 10;
+
+      setData((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          weekly_capacity_cu: normalized,
+        };
+      });
+
+      const weekStartDate = activeWeekStartRef.current;
+      if (!weekStartDate) {
+        return;
+      }
+
+      enqueueMutation({
+        kind: "set_capacity",
+        weekStartDate,
+        capacityCu: normalized,
+      });
+    },
+    [enqueueMutation],
+  );
+
+  const dayOptions = useMemo(() => {
+    if (!data) {
+      return [] as Array<{ date: string; label: string }>;
+    }
+
+    return data.days.map((day) => ({
+      date: day.date,
+      label: formatDayLabel(day.date),
+    }));
+  }, [data]);
+
+  const remainingHabits = useMemo<RemainingHabit[]>(() => {
+    if (!data) {
+      return [];
+    }
+
+    const plannedCountByHabit = new Map<number, number>();
+
+    data.days.forEach((day) => {
+      day.occurrences.forEach((occurrence) => {
+        const currentCount = plannedCountByHabit.get(occurrence.habit_id) ?? 0;
+        plannedCountByHabit.set(occurrence.habit_id, currentCount + 1);
+      });
+    });
+
+    return data.habits
+      .map((habit) => {
+        const plannedCount = plannedCountByHabit.get(habit.id) ?? 0;
+        const targetFrequency = Math.max(0, Math.round(habit.freq_per_week));
+        const remaining = Math.max(targetFrequency - plannedCount, 0);
+
+        return {
+          ...habit,
+          planned_count: plannedCount,
+          remaining,
+        };
+      })
+      .filter((habit) => habit.remaining > 0)
+      .sort((a, b) => {
+        if (b.remaining !== a.remaining) {
+          return b.remaining - a.remaining;
+        }
+        return a.title.localeCompare(b.title);
+      });
+  }, [data]);
+
+  const plannedCu = data?.planned_cu ?? 0;
+  const weeklyCapacity = data?.weekly_capacity_cu ?? null;
+  const isOverloaded =
+    weeklyCapacity !== null && weeklyCapacity > 0 && plannedCu > weeklyCapacity;
+  const overloadBy =
+    weeklyCapacity !== null && weeklyCapacity > 0 ? Math.max(plannedCu - weeklyCapacity, 0) : 0;
+
+  const overloadMicroSuggestion = useMemo<OverloadMicroSuggestion | null>(() => {
+    if (!data || !isOverloaded) {
+      return null;
+    }
+
+    let best: OverloadMicroSuggestion | null = null;
+
+    data.days.forEach((day) => {
+      day.occurrences.forEach((occurrence) => {
+        if (!occurrence.habit_has_micro || occurrence.habit_micro_weight_cu <= 0) {
+          return;
+        }
+
+        const savings = occurrence.planned_weight_cu - occurrence.habit_micro_weight_cu;
+        if (savings <= 0) {
+          return;
+        }
+
+        if (!best || savings > best.savingsCu) {
+          best = {
+            occurrenceId: occurrence.id,
+            habitTitle: occurrence.habit_title,
+            savingsCu: savings,
+          };
+        }
+      });
+    });
+
+    return best;
+  }, [data, isOverloaded]);
+
+  const overloadMoveSuggestion = useMemo<OverloadMoveSuggestion | null>(() => {
+    if (!data || !isOverloaded) {
+      return null;
+    }
+
+    let biggestOccurrence: PlanOccurrence | null = null;
+
+    data.days.forEach((day) => {
+      day.occurrences.forEach((occurrence) => {
+        if (!biggestOccurrence) {
+          biggestOccurrence = occurrence;
+          return;
+        }
+        if (occurrence.planned_weight_cu > biggestOccurrence.planned_weight_cu) {
+          biggestOccurrence = occurrence;
+        }
+      });
+    });
+
+    if (!biggestOccurrence) {
+      return null;
+    }
+
+    return {
+      occurrenceId: biggestOccurrence.id,
+      habitTitle: biggestOccurrence.habit_title,
+      targetDate: shiftIsoDate(data.week_start_date, 7),
+    };
+  }, [data, isOverloaded]);
+
+  const handleAutoDistribute = useCallback(() => {
+    if (!data || remainingHabits.length === 0) {
+      return;
+    }
+
+    const virtualDays = data.days.map((day) => ({
+      date: day.date,
+      load: day.planned_cu,
+      habitIds: new Set(day.occurrences.map((occurrence) => occurrence.habit_id)),
+    }));
+
+    const placements: Array<{ habitId: number; date: string }> = [];
+
+    remainingHabits.forEach((habit) => {
+      let leftToPlace = habit.remaining;
+
+      while (leftToPlace > 0) {
+        const candidate = [...virtualDays]
+          .filter((day) => !day.habitIds.has(habit.id))
+          .sort((a, b) => {
+            if (a.load !== b.load) {
+              return a.load - b.load;
+            }
+            return a.date.localeCompare(b.date);
+          })[0];
+
+        if (!candidate) {
+          break;
+        }
+
+        placements.push({
+          habitId: habit.id,
+          date: candidate.date,
+        });
+
+        candidate.habitIds.add(habit.id);
+        candidate.load += habit.weight_cu;
+        leftToPlace -= 1;
+      }
+    });
+
+    placements.forEach((placement) => {
+      addOccurrence(placement.habitId, placement.date);
+    });
+  }, [addOccurrence, data, remainingHabits]);
+
+  const handleExportIcs = useCallback(() => {
+    if (!data) {
+      return;
+    }
+
+    const icsContent = buildWeekPlanIcs(data);
+    const blob = new Blob([icsContent], {
+      type: "text/calendar;charset=utf-8",
+    });
+
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = `habit-pilot-plan-${data.week_start_date}.ics`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  }, [data]);
+
+  const changeWeek = useCallback(
+    async (weekStartDate: string) => {
+      if (!data || weekStartDate === data.week_start_date) {
+        return;
+      }
+
+      if (flushTimerRef.current) {
+        window.clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
+
+      await flushMutations();
+      await loadPlan(weekStartDate);
+    },
+    [data, flushMutations, loadPlan],
+  );
+
+  const currentWeekStart = data ? getWeekStartDate(data.today_date) : null;
+  const isCurrentWeek = data && currentWeekStart ? data.week_start_date === currentWeekStart : false;
+
+  const scrollToDay = useCallback((date: string) => {
+    const target = document.querySelector(`[data-plan-date=\"${date}\"]`);
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, []);
+
+  const handlePreviousWeek = useCallback(() => {
+    if (!data) {
+      return;
+    }
+    void changeWeek(shiftIsoDate(data.week_start_date, -7));
+  }, [changeWeek, data]);
+
+  const handleNextWeek = useCallback(() => {
+    if (!data) {
+      return;
+    }
+    void changeWeek(shiftIsoDate(data.week_start_date, 7));
+  }, [changeWeek, data]);
+
+  const handleCurrentWeek = useCallback(() => {
+    if (!currentWeekStart) {
+      return;
+    }
+    void changeWeek(currentWeekStart);
+  }, [changeWeek, currentWeekStart]);
+
+  const handleToday = useCallback(() => {
+    if (!data || !currentWeekStart) {
+      return;
+    }
+
+    if (data.week_start_date === currentWeekStart) {
+      scrollToDay(data.today_date);
+      return;
+    }
+
+    void (async () => {
+      await changeWeek(currentWeekStart);
+      window.setTimeout(() => {
+        scrollToDay(data.today_date);
+      }, 150);
+    })();
+  }, [changeWeek, currentWeekStart, data, scrollToDay]);
+
+  if (isLoading && !data) {
     return (
       <section className="space-y-6">
-        <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-          Loading weekly plan...
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Plan</h1>
+          </div>
+          <div className="h-6 w-64 animate-pulse rounded bg-muted" />
+        </header>
+
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr_auto]">
+            <div className="h-24 animate-pulse rounded-lg bg-muted" />
+            <div className="h-24 animate-pulse rounded-lg bg-muted" />
+            <div className="h-24 animate-pulse rounded-lg bg-muted" />
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[1120px] grid-cols-7 gap-3">
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div
+                  key={`plan-skeleton-${index}`}
+                  className="h-[360px] animate-pulse rounded-xl border border-border bg-card"
+                />
+              ))}
+            </div>
+          </div>
+          <div className="h-[460px] animate-pulse rounded-xl border border-border bg-card" />
         </div>
       </section>
     );
   }
 
-  if (error || !data) {
+  if (error && !data) {
     return (
       <section className="space-y-6">
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-          {error ?? "Failed to load plan."}
+          {error}
         </div>
       </section>
     );
   }
 
-  return (
-    <section className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Plan — Week {weekNumber} ({weekRange})
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Your weekly capacity defines how much you can realistically commit.
-          </p>
-        </div>
+  if (!data) {
+    return null;
+  }
 
-        <div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>Weekly Capacity</span>
-              <span>{weeklyCapacity ? `${formatCu(weeklyCapacity)} CU` : "Set in settings"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Planned Load</span>
-              <span>{formatCu(plannedCu)} CU</span>
+  return (
+    <>
+      <section className="space-y-6">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Plan</h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <p>Plan your week within capacity.</p>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button type="button" variant="link" size="sm" className="h-auto p-0">
+                  Learn more
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>How weekly planning works</DialogTitle>
+                  <DialogDescription>
+                    Add habit occurrences across Mon-Sun, keep planned CU under weekly capacity,
+                    and use micro-steps or re-scheduling when overloaded.
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
+            {saveStatus === "saving" ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2 py-1 text-xs">
+                <Loader2 className="size-3 animate-spin" />
+                Saving...
+              </span>
+            ) : saveStatus === "saved" ? (
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-500">
+                Saved
+              </span>
+            ) : null}
+          </div>
+        </header>
+
+        <section className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr_auto]">
+            <WeekSwitcher
+              weekStartDate={data.week_start_date}
+              weekEndDate={data.week_end_date}
+              isCurrentWeek={Boolean(isCurrentWeek)}
+              onPreviousWeek={handlePreviousWeek}
+              onNextWeek={handleNextWeek}
+              onCurrentWeek={handleCurrentWeek}
+              onToday={handleToday}
+            />
+
+            <CapacityMeter plannedCu={plannedCu} capacityCu={weeklyCapacity} />
+
+            <div className="flex flex-col gap-2 xl:w-[170px]">
+              <Button type="button" onClick={() => setIsCapacityModalOpen(true)}>
+                Set capacity
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleAutoDistribute}
+                disabled={remainingHabits.length === 0}
+              >
+                Auto-distribute
+              </Button>
+              <Button type="button" variant="ghost" onClick={handleExportIcs}>
+                Export .ics
+              </Button>
             </div>
           </div>
-          <div className="mt-3 h-2 rounded-full bg-muted">
-            <div
-              className={capacityBarClass}
-              style={{
-                width: `${Math.min(capacityRatio * 100, 100)}%`,
-              }}
+        </section>
+
+        {data.habits.length === 0 ? (
+          <section className="rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm">
+            <h2 className="text-lg font-semibold">No habits yet</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Create your first habit to start distributing weekly occurrences.
+            </p>
+            <div className="mt-4">
+              <Link href="/habits" className={cn(buttonVariants({ size: "sm" }))}>
+                Create your first habit
+              </Link>
+            </div>
+            <div className="mt-6 grid gap-2 md:grid-cols-3">
+              {starterTemplates.map((template) => (
+                <div
+                  key={template.title}
+                  className="rounded-lg border border-border/70 bg-background/50 p-3"
+                >
+                  <p className="text-sm font-medium">{template.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{template.details}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="overflow-x-auto pb-1">
+              <div className="grid min-w-[1120px] grid-cols-7 gap-3">
+                {data.days.map((day) => (
+                  <DayColumn
+                    key={day.date}
+                    day={day}
+                    todayDate={data.today_date}
+                    dayOptions={dayOptions}
+                    onMoveOccurrence={moveOccurrence}
+                    onConvertToMicro={convertToMicro}
+                    onUnplanOccurrence={unplanOccurrence}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <RemainingHabitsPanel
+              remainingHabits={remainingHabits}
+              days={data.days}
+              isOverloaded={isOverloaded}
+              overloadMicroSuggestion={overloadMicroSuggestion}
+              overloadMoveSuggestion={overloadMoveSuggestion}
+              onAddOccurrence={addOccurrence}
+              onApplyMicroSuggestion={convertToMicro}
+              onApplyMoveSuggestion={moveOccurrence}
+              onOpenSetCapacity={() => setIsCapacityModalOpen(true)}
             />
           </div>
-          {capacityState === "over" ? (
-            <p className="mt-2 text-xs text-rose-600">
-              You are over capacity by +{formatCu(overBy)} CU.
-            </p>
-          ) : capacityState === "high" ? (
-            <p className="mt-2 text-xs text-amber-600">
-              You are close to your weekly limit.
-            </p>
-          ) : null}
-        </div>
-      </header>
+        )}
 
-      {actionError ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">
-          {actionError}
-        </div>
-      ) : null}
-
-      <section className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">Quick assign</p>
-            <p className="text-xs text-muted-foreground">
-              Pick a habit and we’ll suggest the lightest day.
-            </p>
+        {isOverloaded ? (
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-500">
+            Overloaded by {formatCu(overloadBy)} CU for this week.
           </div>
-          {lightestDay ? (
-            <span className="text-xs text-muted-foreground">
-              Lightest day: {formatDayLabel(lightestDay.date)}
-            </span>
-          ) : null}
-        </div>
-        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <select
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-            value={quickAssign.habitId ?? ""}
-            onChange={(event) => handleQuickAssign(event.target.value)}
-          >
-            <option value="">Select habit</option>
-            {data.habits.map((habit) => (
-              <option key={habit.id} value={habit.id}>
-                {habit.title} ({formatCu(habit.weight_cu)} CU)
-              </option>
-            ))}
-          </select>
-          <Input
-            placeholder="Context (optional)"
-            value={quickAssign.contextTag ?? ""}
-            onChange={(event) => handleQuickContextChange(event.target.value)}
-          />
-          <Button
-            type="button"
-            disabled={!quickAssign.habitId || !lightestDay}
-            onClick={handleQuickSuggest}
-          >
-            Suggest day
-          </Button>
-        </div>
+        ) : null}
       </section>
 
-      {isOverCapacity && (largestOccurrence || suggestedMicro) ? (
-        <section className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
-          <h2 className="text-sm font-semibold">Overload resolution</h2>
-          <p className="mt-1 text-xs text-rose-600">
-            You are over capacity by +{formatCu(overBy)} CU. Try one of these
-            adjustments.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {largestOccurrence && lightestDay ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  handleMoveOccurrence(largestOccurrence.id, lightestDay.date)
-                }
-              >
-                Move {largestOccurrence.habit_title} to{" "}
-                {formatDayLabel(lightestDay.date)}
-              </Button>
-            ) : null}
-            {suggestedMicro ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => handleUseMicro(suggestedMicro)}
-              >
-                Use micro for {suggestedMicro.habit_title}
-              </Button>
-            ) : null}
-            {largestOccurrence ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => handleRemoveOccurrence(largestOccurrence.id)}
-              >
-                Remove {largestOccurrence.habit_title}
-              </Button>
-            ) : null}
+      <SetCapacityModal
+        open={isCapacityModalOpen}
+        initialCapacityCu={data.weekly_capacity_cu}
+        plannedCu={data.planned_cu}
+        onOpenChange={setIsCapacityModalOpen}
+        onSave={setWeeklyCapacity}
+      />
+
+      {toast ? (
+        <div className="fixed right-6 top-6 z-50 max-w-sm rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg">
+          <div className="flex items-center gap-2">
+            <Info className="size-4" />
+            <p>{toast.message}</p>
           </div>
-        </section>
+        </div>
       ) : null}
-
-      {totalOccurrences === 0 ? (
-        <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-          <p>Your week is not planned yet.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/habits" className={cn(buttonVariants({ size: "sm" }))}>
-              Add habits
-            </Link>
-            <Link
-              href="/habits"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              Create first habit
-            </Link>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {data.days.map((day) => {
-          const isPast = day.date < data.today_date;
-          const dailyCapacity =
-            weeklyCapacity && weeklyCapacity > 0 ? weeklyCapacity / 7 : null;
-          const dayRatio =
-            dailyCapacity && dailyCapacity > 0
-              ? day.planned_cu / dailyCapacity
-              : 0;
-          const dayState =
-            dayRatio > 1 ? "over" : dayRatio > 0.9 ? "high" : "ok";
-          const dayBarClass = cn(
-            "h-1.5 rounded-full",
-            dayState === "over" && "bg-rose-400",
-            dayState === "high" && "bg-amber-400",
-            dayState === "ok" && "bg-emerald-400",
-          );
-
-          const pendingDay = pendingDays.includes(day.date);
-          const selection = daySelections[day.date];
-
-          return (
-            <div
-              key={day.date}
-              className={cn(
-                "rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm",
-                isPast && "opacity-70",
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">
-                    {formatDayLabel(day.date)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatCu(day.planned_cu)} CU planned
-                  </p>
-                </div>
-                {isPast ? (
-                  <span className="rounded-full border border-border/70 bg-background px-2 py-1 text-xs text-muted-foreground">
-                    Past day
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-2 h-1.5 rounded-full bg-muted">
-                <div
-                  className={dayBarClass}
-                  style={{
-                    width: `${Math.min(dayRatio * 100, 100)}%`,
-                  }}
-                />
-              </div>
-
-              <div className="mt-3 space-y-3">
-                {day.occurrences.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    No habits planned.
-                  </p>
-                ) : (
-                  day.occurrences.map((occurrence) => {
-                    const isPending = pendingOccurrences.includes(
-                      occurrence.id,
-                    );
-                    const contextValue =
-                      contextEdits[occurrence.id] ??
-                      occurrence.context_tag ??
-                      "";
-                    const canUseMicro =
-                      occurrence.habit_has_micro &&
-                      occurrence.habit_micro_weight_cu > 0 &&
-                      occurrence.planned_weight_cu >
-                        occurrence.habit_micro_weight_cu;
-
-                    return (
-                      <div
-                        key={occurrence.id}
-                        className="rounded-lg border border-border/70 bg-background p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium">
-                              {occurrence.habit_title}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatCu(occurrence.planned_weight_cu)} CU
-                              {occurrence.context_tag
-                                ? ` • ${occurrence.context_tag}`
-                                : ""}
-                            </p>
-                          </div>
-                          {!isPast ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              disabled={isPending}
-                              onClick={() =>
-                                handleRemoveOccurrence(occurrence.id)
-                              }
-                            >
-                              Remove
-                            </Button>
-                          ) : null}
-                        </div>
-
-                        {!isPast ? (
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <label className="text-xs text-muted-foreground">
-                              Move to
-                            </label>
-                            <select
-                              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                              value={day.date}
-                              disabled={isPending}
-                              onChange={(event) =>
-                                handleMoveOccurrence(
-                                  occurrence.id,
-                                  event.target.value,
-                                )
-                              }
-                            >
-                              {data.days
-                                .filter((option) => option.date >= data.today_date)
-                                .map((option) => (
-                                  <option key={option.date} value={option.date}>
-                                    {formatDayLabel(option.date)}
-                                  </option>
-                                ))}
-                            </select>
-                            {canUseMicro ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                disabled={isPending}
-                                onClick={() => handleUseMicro(occurrence)}
-                              >
-                                Use micro
-                              </Button>
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        {!isPast ? (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <Input
-                              className="h-8"
-                              placeholder="Context (optional)"
-                              value={contextValue}
-                              onChange={(event) =>
-                                setContextEdits((prev) => ({
-                                  ...prev,
-                                  [occurrence.id]: event.target.value,
-                                }))
-                              }
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={isPending}
-                              onClick={() =>
-                                handleUpdateContext(
-                                  occurrence.id,
-                                  contextValue,
-                                )
-                              }
-                            >
-                              Update
-                            </Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <div className="mt-4 border-t border-border/70 pt-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Add habit
-                </p>
-                <div className="mt-2 space-y-2">
-                  <select
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    value={selection?.habitId ?? ""}
-                    disabled={isPast}
-                    onChange={(event) =>
-                      handleDaySelection(day.date, event.target.value)
-                    }
-                  >
-                    <option value="">
-                      {isPast ? "Past day locked" : "Select habit"}
-                    </option>
-                    {data.habits.map((habit) => (
-                      <option key={habit.id} value={habit.id}>
-                        {habit.title} ({formatCu(habit.weight_cu)} CU)
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    placeholder="Context (optional)"
-                    value={selection?.contextTag ?? ""}
-                    disabled={isPast}
-                    onChange={(event) =>
-                      handleDayContextChange(day.date, event.target.value)
-                    }
-                  />
-                  <Button
-                    type="button"
-                    className="w-full"
-                    size="sm"
-                    disabled={
-                      isPast ||
-                      pendingDay ||
-                      !selection?.habitId
-                    }
-                    onClick={() => handleAddOccurrence(day.date)}
-                  >
-                    {pendingDay ? "Adding..." : "Add to day"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    </>
   );
 }

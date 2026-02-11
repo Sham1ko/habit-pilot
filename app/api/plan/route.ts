@@ -6,8 +6,38 @@ import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 import { toNumber } from "@/lib/number";
 
+const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const isoDateSchema = z
+  .string()
+  .regex(isoDateRegex, {
+    message: "Date must be in YYYY-MM-DD format",
+  })
+  .refine((value) => !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime()), {
+    message: "Invalid date value",
+  });
+
+const capacityValueSchema = z
+  .preprocess((value) => {
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value.toString() : "";
+    }
+
+    if (typeof value === "string") {
+      return value.trim();
+    }
+
+    return value;
+  }, z.coerce.string())
+  .refine((value) => value !== "" && !Number.isNaN(Number(value)), {
+    message: "Capacity is required.",
+  })
+  .refine((value) => Number(value) > 0, {
+    message: "Capacity must be greater than 0.",
+  });
+
 const addOccurrenceSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: isoDateSchema,
   habit_id: z.coerce.number().int().positive(),
   planned_weight_cu: z
     .preprocess((value) => {
@@ -45,7 +75,7 @@ const addOccurrenceSchema = z.object({
 const updateOccurrenceSchema = z
   .object({
     occurrence_id: z.string().uuid(),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    date: isoDateSchema.optional(),
     planned_weight_cu: z
       .preprocess((value) => {
         if (typeof value === "number") {
@@ -86,9 +116,44 @@ const updateOccurrenceSchema = z
     { message: "No fields to update", path: ["fields"] },
   );
 
+const updateCapacitySchema = z.object({
+  capacity_cu: capacityValueSchema,
+  week_start_date: isoDateSchema.optional(),
+});
+
 const deleteOccurrenceSchema = z.object({
   occurrence_id: z.string().uuid(),
 });
+
+function parseIsoDate(value: string) {
+  return new Date(`${value}T00:00:00Z`);
+}
+
+function toWeekStartDate(date: Date) {
+  const weekStart = new Date(date);
+  const weekday = weekStart.getUTCDay();
+  const shift = weekday === 0 ? 6 : weekday - 1;
+  weekStart.setUTCDate(weekStart.getUTCDate() - shift);
+  weekStart.setUTCHours(0, 0, 0, 0);
+  return weekStart;
+}
+
+function getWeekWindowFromStart(startDate: Date) {
+  const weekStartDate = toWeekStartDate(startDate);
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
+
+  return {
+    weekStartDate,
+    weekEndDate,
+    weekStartDateString: formatDateUTC(weekStartDate),
+    weekEndDateString: formatDateUTC(weekEndDate),
+  };
+}
+
+function getWeekWindowFromDate(date: Date) {
+  return getWeekWindowFromStart(date);
+}
 
 async function getPlannedTotal(userId: number, weekStart: Date, weekEnd: Date) {
   const plannedSum = await prisma.plannedOccurrence.aggregate({
@@ -102,7 +167,7 @@ async function getPlannedTotal(userId: number, weekStart: Date, weekEnd: Date) {
   return plannedSum._sum.planned_weight_cu?.toString() ?? "0";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const userResult = await requireRequestUser();
     if (hasRouteError(userResult)) {
@@ -110,18 +175,26 @@ export async function GET() {
     }
     const user = userResult.data;
 
-    const {
-      todayDateString,
-      weekStartDate,
-      weekEndDate,
-      weekStartDateString,
-      weekEndDateString,
-    } = getDateContext(user.tz ?? undefined);
+    const dateContext = getDateContext(user.tz ?? undefined);
+
+    const requestUrl = new URL(request.url);
+    const weekStartQuery = requestUrl.searchParams.get("week_start");
+
+    if (weekStartQuery && !isoDateRegex.test(weekStartQuery)) {
+      return NextResponse.json(
+        { error: "Invalid week_start date format." },
+        { status: 400 },
+      );
+    }
+
+    const selectedWeekWindow = weekStartQuery
+      ? getWeekWindowFromStart(parseIsoDate(weekStartQuery))
+      : getWeekWindowFromStart(dateContext.weekStartDate);
 
     const capacityPromise = prisma.capacityPlan.findFirst({
       where: {
         user_id: user.id,
-        week_start_date: weekStartDate,
+        week_start_date: selectedWeekWindow.weekStartDate,
       },
     });
 
@@ -133,7 +206,10 @@ export async function GET() {
     const occurrencesPromise = prisma.plannedOccurrence.findMany({
       where: {
         habit: { user_id: user.id },
-        date: { gte: weekStartDate, lte: weekEndDate },
+        date: {
+          gte: selectedWeekWindow.weekStartDate,
+          lte: selectedWeekWindow.weekEndDate,
+        },
       },
       include: { habit: true },
       orderBy: { date: "asc" },
@@ -184,7 +260,7 @@ export async function GET() {
     });
 
     const days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(weekStartDate);
+      const date = new Date(selectedWeekWindow.weekStartDate);
       date.setUTCDate(date.getUTCDate() + index);
       const dateString = formatDateUTC(date);
       const dayOccurrences = occurrencesByDate.get(dateString) ?? [];
@@ -202,9 +278,9 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        week_start_date: weekStartDateString,
-        week_end_date: weekEndDateString,
-        today_date: todayDateString,
+        week_start_date: selectedWeekWindow.weekStartDateString,
+        week_end_date: selectedWeekWindow.weekEndDateString,
+        today_date: dateContext.todayDateString,
         weekly_capacity_cu: weeklyCapacity?.toString() ?? null,
         planned_cu: plannedTotal.toString(),
         days,
@@ -212,6 +288,7 @@ export async function GET() {
           id: habit.id,
           title: habit.title,
           weight_cu: habit.weight_cu.toString(),
+          freq_per_week: habit.freq_per_week.toString(),
           has_micro: habit.has_micro,
           micro_weight_cu: habit.micro_weight_cu.toString(),
           context_tags: habit.context_tags ?? [],
@@ -248,10 +325,6 @@ export async function POST(request: Request) {
     }
     const user = userResult.data;
 
-    const { weekStartDate, weekEndDate } = getDateContext(
-      user.tz ?? undefined,
-    );
-
     const habit = await prisma.habit.findFirst({
       where: { id: parsed.data.habit_id, user_id: user.id },
     });
@@ -263,7 +336,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const date = new Date(`${parsed.data.date}T00:00:00Z`);
+    const date = parseIsoDate(parsed.data.date);
 
     const existing = await prisma.plannedOccurrence.findFirst({
       where: {
@@ -293,10 +366,12 @@ export async function POST(request: Request) {
       },
     });
 
+    const weekWindow = getWeekWindowFromDate(date);
+
     const plannedTotal = await getPlannedTotal(
       user.id,
-      weekStartDate,
-      weekEndDate,
+      weekWindow.weekStartDate,
+      weekWindow.weekEndDate,
     );
 
     return NextResponse.json(
@@ -332,7 +407,69 @@ export async function PATCH(request: Request) {
       return bodyResult.error;
     }
 
-    const parsed = updateOccurrenceSchema.safeParse(bodyResult.data);
+    const body = bodyResult.data;
+    const isCapacityUpdate =
+      typeof body === "object" && body !== null && "capacity_cu" in body;
+
+    if (isCapacityUpdate) {
+      const parsedCapacity = updateCapacitySchema.safeParse(body);
+      if (!parsedCapacity.success) {
+        const message =
+          parsedCapacity.error.issues[0]?.message ?? "Invalid request body";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+
+      const userResult = await requireRequestUser();
+      if (hasRouteError(userResult)) {
+        return userResult.error;
+      }
+      const user = userResult.data;
+
+      const fallbackContext = getDateContext(user.tz ?? undefined);
+      const weekWindow = parsedCapacity.data.week_start_date
+        ? getWeekWindowFromStart(parseIsoDate(parsedCapacity.data.week_start_date))
+        : getWeekWindowFromStart(fallbackContext.weekStartDate);
+
+      const existingPlan = await prisma.capacityPlan.findFirst({
+        where: {
+          user_id: user.id,
+          week_start_date: weekWindow.weekStartDate,
+        },
+      });
+
+      const updatedPlan = existingPlan
+        ? await prisma.capacityPlan.update({
+            where: { id: existingPlan.id },
+            data: {
+              capacity_cu: parsedCapacity.data.capacity_cu,
+            },
+          })
+        : await prisma.capacityPlan.create({
+            data: {
+              user_id: user.id,
+              week_start_date: weekWindow.weekStartDate,
+              capacity_cu: parsedCapacity.data.capacity_cu,
+            },
+          });
+
+      const plannedTotal = await getPlannedTotal(
+        user.id,
+        weekWindow.weekStartDate,
+        weekWindow.weekEndDate,
+      );
+
+      return NextResponse.json(
+        {
+          week_start_date: weekWindow.weekStartDateString,
+          week_end_date: weekWindow.weekEndDateString,
+          capacity_cu: updatedPlan.capacity_cu.toString(),
+          planned_cu: plannedTotal,
+        },
+        { status: 200 },
+      );
+    }
+
+    const parsed = updateOccurrenceSchema.safeParse(body);
     if (!parsed.success) {
       const message =
         parsed.error.issues[0]?.message ?? "Invalid request body";
@@ -344,10 +481,6 @@ export async function PATCH(request: Request) {
       return userResult.error;
     }
     const user = userResult.data;
-
-    const { weekStartDate, weekEndDate } = getDateContext(
-      user.tz ?? undefined,
-    );
 
     const occurrence = await prisma.plannedOccurrence.findFirst({
       where: {
@@ -371,7 +504,7 @@ export async function PATCH(request: Request) {
     } = {};
 
     if (parsed.data.date) {
-      updateData.date = new Date(`${parsed.data.date}T00:00:00Z`);
+      updateData.date = parseIsoDate(parsed.data.date);
     }
 
     if (parsed.data.planned_weight_cu) {
@@ -404,10 +537,13 @@ export async function PATCH(request: Request) {
       data: updateData,
     });
 
+    const targetDate = updateData.date ?? occurrence.date;
+    const weekWindow = getWeekWindowFromDate(targetDate);
+
     const plannedTotal = await getPlannedTotal(
       user.id,
-      weekStartDate,
-      weekEndDate,
+      weekWindow.weekStartDate,
+      weekWindow.weekEndDate,
     );
 
     return NextResponse.json(
@@ -456,10 +592,6 @@ export async function DELETE(request: Request) {
     }
     const user = userResult.data;
 
-    const { weekStartDate, weekEndDate } = getDateContext(
-      user.tz ?? undefined,
-    );
-
     const occurrence = await prisma.plannedOccurrence.findFirst({
       where: {
         id: parsed.data.occurrence_id,
@@ -474,14 +606,16 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const weekWindow = getWeekWindowFromDate(occurrence.date);
+
     await prisma.plannedOccurrence.delete({
       where: { id: occurrence.id },
     });
 
     const plannedTotal = await getPlannedTotal(
       user.id,
-      weekStartDate,
-      weekEndDate,
+      weekWindow.weekStartDate,
+      weekWindow.weekEndDate,
     );
 
     return NextResponse.json(
