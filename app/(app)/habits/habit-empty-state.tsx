@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   HabitCreateDialog,
   type HabitCreateInitialValues,
-} from "./HabitCreateDialog";
+} from "./habit-create-dialog";
 import type { HabitListItem } from "./types";
 
 type HabitsEmptyStateProps = {

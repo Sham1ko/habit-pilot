@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { HabitCreateDialog } from "./HabitCreateDialog";
-import { HabitCard } from "./HabitCard";
-import { HabitsEmptyState } from "./HabitsEmptyState";
+import { HabitCreateDialog } from "./habit-create-dialog";
+import { HabitCard } from "./habit-card";
+import { HabitsEmptyState } from "./habit-empty-state";
 import type { HabitListItem } from "./types";
 
 export default function HabitsPage() {
@@ -18,9 +18,10 @@ export default function HabitsPage() {
     const loadHabits = async () => {
       try {
         const response = await fetch("/api/habits");
-        const data = (await response.json().catch(() => null)) as
-          | { habits?: HabitListItem[]; error?: string }
-          | null;
+        const data = (await response.json().catch(() => null)) as {
+          habits?: HabitListItem[];
+          error?: string;
+        } | null;
 
         if (!response.ok) {
           throw new Error(data?.error ?? "Failed to load habits.");
@@ -34,7 +35,7 @@ export default function HabitsPage() {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Failed to load habits."
+              : "Failed to load habits.",
           );
         }
       } finally {
@@ -64,7 +65,9 @@ export default function HabitsPage() {
 
   const handleHabitUpdated = (updatedHabit: HabitListItem) => {
     setHabits((prev) =>
-      prev.map((habit) => (habit.id === updatedHabit.id ? updatedHabit : habit))
+      prev.map((habit) =>
+        habit.id === updatedHabit.id ? updatedHabit : habit,
+      ),
     );
   };
 
@@ -74,7 +77,7 @@ export default function HabitsPage() {
     }
 
     const shouldDelete = window.confirm(
-      `Delete habit "${habit.title}"? This action cannot be undone.`
+      `Delete habit "${habit.title}"? This action cannot be undone.`,
     );
     if (!shouldDelete) {
       return;
@@ -92,9 +95,10 @@ export default function HabitsPage() {
         body: JSON.stringify({ id: habit.id }),
       });
 
-      const data = (await response.json().catch(() => null)) as
-        | { message?: string; error?: string }
-        | null;
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+        error?: string;
+      } | null;
 
       if (!response.ok) {
         throw new Error(data?.error ?? "Failed to delete habit.");
@@ -105,7 +109,7 @@ export default function HabitsPage() {
       setError(
         deleteError instanceof Error
           ? deleteError.message
-          : "Failed to delete habit."
+          : "Failed to delete habit.",
       );
     } finally {
       setDeletingHabitId(null);

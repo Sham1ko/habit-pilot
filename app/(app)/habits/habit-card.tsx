@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HabitEditDialog } from "./HabitEditDialog";
+import { HabitEditDialog } from "./habit-edit-dialog";
 import type { HabitListItem } from "./types";
 
 type HabitCardProps = {

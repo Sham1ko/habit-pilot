@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LogOut, Settings } from "lucide-react";
-import LogoutButton from "@/components/LogoutButton";
-import OnboardingModal from "@/components/OnboardingModal";
+import LogoutButton from "@/components/logout-button";
+import OnboardingModal from "@/components/onboarding-modal";
 
 const navItems = [
   { href: "/today", label: "Today" },
