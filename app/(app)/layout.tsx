@@ -60,7 +60,7 @@ export default function AppLayout({
           </div>
         </aside>
 
-        <main className="flex-1 px-6 py-8 md:px-10 md:py-10">{children}</main>
+        <main className="flex-1 p-6 md:px-10 md:py-10">{children}</main>
         <OnboardingModal />
       </div>
     </div>

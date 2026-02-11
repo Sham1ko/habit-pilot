@@ -1208,9 +1208,9 @@ export default function PlanPage() {
             </div>
           </section>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="overflow-x-auto pb-1">
-              <div className="grid min-w-[1120px] grid-cols-7 gap-3">
+          <div className="grid items-stretch gap-4 xl:min-h-[calc(100svh-22rem)] xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="overflow-x-auto pb-1 xl:h-full">
+              <div className="grid min-w-[1120px] grid-cols-7 items-stretch gap-3 xl:h-full">
                 {data.days.map((day) => (
                   <DayColumn
                     key={day.date}
