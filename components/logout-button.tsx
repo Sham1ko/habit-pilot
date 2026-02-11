@@ -4,15 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 
-type LogoutButtonProps = {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-export default function LogoutButton({
-  className,
-  children,
-}: LogoutButtonProps) {
+export function useLogout() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -37,16 +29,30 @@ export default function LogoutButton({
     }
   };
 
+  return { handleLogout, isLoggingOut: isLoggingOut || isPending };
+}
+
+type LogoutButtonProps = {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+export default function LogoutButton({
+  className,
+  children,
+}: LogoutButtonProps) {
+  const { handleLogout, isLoggingOut } = useLogout();
+
   return (
     <button
       onClick={handleLogout}
-      disabled={isLoggingOut || isPending}
+      disabled={isLoggingOut}
       className={cn(
         "px-4 py-2 border border-red-600 hover:bg-red-600 disabled:bg-red-400 text-red-600 hover:text-white font-medium text-sm rounded-lg transition duration-200 disabled:cursor-not-allowed",
         className,
       )}
     >
-      {isLoggingOut || isPending ? "Logging out..." : (children ?? "Logout")}
+      {isLoggingOut ? "Logging out..." : (children ?? "Logout")}
     </button>
   );
 }
