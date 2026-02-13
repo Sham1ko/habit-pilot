@@ -32,7 +32,7 @@ export function DayColumn({
   return (
     <article
       data-plan-date={day.date}
-      className="flex h-full min-h-[420px] flex-col rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-card-foreground shadow-sm"
+      className="flex h-full min-h-[420px] flex-col rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm"
     >
       <header className="flex items-start justify-between gap-2">
         <div>
@@ -55,7 +55,7 @@ export function DayColumn({
 
       <div className="mt-3 flex flex-1 flex-col gap-2">
         {day.occurrences.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white/70 px-4 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border/80 bg-background/70 px-4 text-center">
             <p className="text-sm text-muted-foreground">Drop habits here</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Add from the right panel

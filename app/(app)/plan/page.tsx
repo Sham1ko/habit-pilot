@@ -1144,14 +1144,14 @@ export default function PlanPage() {
                 Saving...
               </span>
             ) : saveStatus === "saved" ? (
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-500">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-600 dark:text-emerald-300">
                 Saved
               </span>
             ) : null}
           </div>
         </header>
 
-        <section className="rounded-xl border border-zinc-200 bg-white p-4 text-card-foreground shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
           <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr_auto]">
             <WeekSwitcher
               weekStartDate={data.week_start_date}
@@ -1185,7 +1185,7 @@ export default function PlanPage() {
         </section>
 
         {data.habits.length === 0 ? (
-          <section className="rounded-xl border border-zinc-200 bg-white p-6 text-card-foreground shadow-sm">
+          <section className="rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm">
             <h2 className="text-lg font-semibold">No habits yet</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Create your first habit to start distributing weekly occurrences.
@@ -1208,7 +1208,7 @@ export default function PlanPage() {
             </div>
           </section>
         ) : (
-          <div className="grid items-stretch gap-4 rounded-2xl border border-zinc-200/80 bg-zinc-100/70 p-3 xl:min-h-[calc(100svh-22rem)] xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid items-stretch gap-4 rounded-2xl border border-border/80 bg-muted/40 p-3 xl:min-h-[calc(100svh-22rem)] xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="overflow-x-auto pb-1 xl:h-full">
               <div className="grid min-w-[1120px] grid-cols-7 items-stretch gap-3 xl:h-full">
                 {data.days.map((day) => (
@@ -1240,7 +1240,7 @@ export default function PlanPage() {
         )}
 
         {isOverloaded ? (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-500">
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-600 dark:text-rose-300">
             Overloaded by {formatCu(overloadBy)} CU for this week.
           </div>
         ) : null}
