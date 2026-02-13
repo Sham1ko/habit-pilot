@@ -48,7 +48,7 @@ export function RemainingHabitsPanel({
 }: RemainingHabitsPanelProps) {
   return (
     <aside className="space-y-4">
-      <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-card-foreground shadow-sm">
+      <section className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold">Remaining habits</h2>
@@ -56,14 +56,14 @@ export function RemainingHabitsPanel({
               Add unplanned occurrences for this week.
             </p>
           </div>
-          <span className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-xs text-muted-foreground">
+          <span className="rounded-full border border-border bg-background px-2 py-1 text-xs text-muted-foreground">
             {remainingHabits.reduce((sum, habit) => sum + habit.remaining, 0)} left
           </span>
         </div>
 
         <div className="space-y-2">
           {remainingHabits.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-zinc-200 bg-white/80 p-4 text-center text-xs text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-border/80 bg-background/80 p-4 text-center text-xs text-muted-foreground">
               All weekly frequencies are distributed.
             </div>
           ) : (
@@ -75,21 +75,21 @@ export function RemainingHabitsPanel({
               return (
                 <article
                   key={habit.id}
-                  className="rounded-lg border border-zinc-200 bg-white p-3"
+                  className="rounded-lg border border-border bg-card p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{habit.title}</p>
                       <p className="text-xs text-muted-foreground">Remaining {habit.remaining}</p>
                     </div>
-                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs text-muted-foreground">
+                    <span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
                       {formatCu(habit.weight_cu)} CU
                     </span>
                   </div>
 
                   <div className="mt-2 flex items-center justify-between gap-2">
                     {habit.has_micro ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-sky-500">
+                      <span className="inline-flex items-center gap-1 text-xs text-sky-600 dark:text-sky-300">
                         <CornerDownRight className="size-3.5" />
                         Micro-step available
                       </span>
@@ -133,9 +133,9 @@ export function RemainingHabitsPanel({
       </section>
 
       {isOverloaded ? (
-        <section className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-500 shadow-sm">
+        <section className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-600 dark:text-rose-300 shadow-sm">
           <h3 className="text-sm font-semibold">Overload helper</h3>
-          <p className="mt-1 text-xs text-rose-500/90">
+          <p className="mt-1 text-xs text-rose-600/90 dark:text-rose-300/90">
             Capacity is exceeded. Try one of these actions:
           </p>
           <div className="mt-3 space-y-2">
@@ -156,7 +156,7 @@ export function RemainingHabitsPanel({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="w-full justify-start border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:text-rose-500"
+                className="w-full justify-start border-rose-500/30 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 hover:text-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
                 onClick={() =>
                   onApplyMoveSuggestion(
                     overloadMoveSuggestion.occurrenceId,
@@ -171,7 +171,7 @@ export function RemainingHabitsPanel({
               type="button"
               size="sm"
               variant="outline"
-              className="w-full justify-start border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 hover:text-rose-500"
+              className="w-full justify-start border-rose-500/30 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 hover:text-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
               onClick={onOpenSetCapacity}
             >
               Adjust weekly capacity

@@ -29,7 +29,7 @@ export function CapacityMeter({ plannedCu, capacityCu }: CapacityMeterProps) {
   const overload = capacityCu && capacityCu > 0 ? Math.max(plannedCu - capacityCu, 0) : 0;
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
+    <div className="rounded-xl border border-border bg-card p-4 text-card-foreground">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -41,15 +41,15 @@ export function CapacityMeter({ plannedCu, capacityCu }: CapacityMeterProps) {
           </p>
         </div>
         {state === "overloaded" ? (
-          <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-500">
+          <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-600 dark:text-rose-300">
             Overload
           </span>
         ) : state === "near_limit" ? (
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-500">
+          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-300">
             Near limit
           </span>
         ) : (
-          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500">
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-300">
             Within capacity
           </span>
         )}
