@@ -121,8 +121,7 @@ export default function HabitsPage() {
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Habits</h1>
+        <div className="max-w-xl">
           <p className="text-sm text-muted-foreground">
             Track your routines and keep your streaks alive.
           </p>

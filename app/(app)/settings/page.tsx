@@ -15,8 +15,7 @@ export default function SettingsPage() {
 
   return (
     <section className="mx-auto w-full max-w-2xl space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      <header>
         <p className="text-sm text-muted-foreground">
           Manage the appearance of the application.
         </p>
