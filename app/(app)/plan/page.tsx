@@ -1067,9 +1067,7 @@ export default function PlanPage() {
     return (
       <section className="space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Plan</h1>
-          </div>
+          <div className="h-5 w-52 animate-pulse rounded bg-muted" />
           <div className="h-6 w-64 animate-pulse rounded bg-muted" />
         </header>
 
@@ -1116,12 +1114,11 @@ export default function PlanPage() {
     <>
       <section className="space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Plan</h1>
-          </div>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Plan your week within capacity.
+          </p>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <p>Plan your week within capacity.</p>
             <Dialog>
               <DialogTrigger asChild>
                 <Button type="button" variant="link" size="sm" className="h-auto p-0">

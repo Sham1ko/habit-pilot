@@ -457,10 +457,8 @@ export default function TodayPage() {
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Today — {todayLabel}
-          </h1>
+        <div className="max-w-xl">
+          <p className="text-sm text-muted-foreground">{todayLabel}</p>
           {subtitle ? (
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           ) : null}

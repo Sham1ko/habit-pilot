@@ -1,6 +1,7 @@
 import AppSidebar from "@/components/sidebar";
+import { AppHeader } from "@/components/app-header";
 import OnboardingModal from "@/components/onboarding-modal";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AppLayout({
   children,
@@ -11,9 +12,7 @@ export default function AppLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b px-6">
-          <SidebarTrigger />
-        </header>
+        <AppHeader />
         <main className="flex-1 p-6 md:px-10 md:py-10">{children}</main>
         <OnboardingModal />
       </SidebarInset>
