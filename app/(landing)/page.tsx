@@ -1,33 +1,27 @@
-import Link from "next/link";
+import { CtaSection } from "./_components/cta-section";
+import { FaqSection } from "./_components/faq-section";
+import { FeaturesSection } from "./_components/features-section";
+import { Footer } from "./_components/footer";
+import { Header } from "./_components/header";
+import { HeroSection } from "./_components/hero-section";
+import { HowItWorksSection } from "./_components/how-it-works-section";
+import { PreviewSection } from "./_components/preview-section";
+import { ProblemSection } from "./_components/problem-section";
 
-export default function LandingPage() {
+export default function HomePage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-12">
-      <div className="max-w-lg text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
-          Habit Pilot
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold text-zinc-900">
-          Navigate your habits with ease.
-        </h1>
-        <p className="mt-4 text-base text-zinc-600">
-          Simple daily check-ins, clear progress, and a plan that sticks.
-        </p>
-        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
-            href="/login"
-          >
-            Sign in
-          </Link>
-          <Link
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-white"
-            href="/register"
-          >
-            Create account
-          </Link>
-        </div>
-      </div>
-    </main>
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main>
+        <HeroSection />
+        <ProblemSection />
+        <HowItWorksSection />
+        <FeaturesSection />
+        <PreviewSection />
+        <FaqSection />
+        <CtaSection />
+      </main>
+      <Footer />
+    </div>
   );
 }
