@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prismaClient";
+import { eq, and, gte, lte, asc, ne, sum } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { habits, plannedOccurrences, capacityPlans } from "@/lib/db/schema";
 import { formatDateUTC, getDateContext } from "@/lib/date";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
@@ -156,15 +158,19 @@ function getWeekWindowFromDate(date: Date) {
 }
 
 async function getPlannedTotal(userId: number, weekStart: Date, weekEnd: Date) {
-  const plannedSum = await prisma.plannedOccurrence.aggregate({
-    where: {
-      habit: { user_id: userId },
-      date: { gte: weekStart, lte: weekEnd },
-    },
-    _sum: { planned_weight_cu: true },
-  });
+  const [result] = await db
+    .select({ total: sum(plannedOccurrences.planned_weight_cu) })
+    .from(plannedOccurrences)
+    .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+    .where(
+      and(
+        eq(habits.user_id, userId),
+        gte(plannedOccurrences.date, weekStart),
+        lte(plannedOccurrences.date, weekEnd),
+      ),
+    );
 
-  return plannedSum._sum.planned_weight_cu?.toString() ?? "0";
+  return result?.total ?? "0";
 }
 
 export async function GET(request: Request) {
@@ -191,31 +197,48 @@ export async function GET(request: Request) {
       ? getWeekWindowFromStart(parseIsoDate(weekStartQuery))
       : getWeekWindowFromStart(dateContext.weekStartDate);
 
-    const capacityPromise = prisma.capacityPlan.findFirst({
-      where: {
-        user_id: user.id,
-        week_start_date: selectedWeekWindow.weekStartDate,
-      },
-    });
+    const capacityPromise = db
+      .select()
+      .from(capacityPlans)
+      .where(
+        and(
+          eq(capacityPlans.user_id, user.id),
+          eq(capacityPlans.week_start_date, selectedWeekWindow.weekStartDate),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0] ?? null);
 
-    const habitsPromise = prisma.habit.findMany({
-      where: { user_id: user.id, is_active: true },
-      orderBy: { created_at: "asc" },
-    });
+    const habitsPromise = db
+      .select()
+      .from(habits)
+      .where(and(eq(habits.user_id, user.id), eq(habits.is_active, true)))
+      .orderBy(asc(habits.created_at));
 
-    const occurrencesPromise = prisma.plannedOccurrence.findMany({
-      where: {
-        habit: { user_id: user.id },
-        date: {
-          gte: selectedWeekWindow.weekStartDate,
-          lte: selectedWeekWindow.weekEndDate,
-        },
-      },
-      include: { habit: true },
-      orderBy: { date: "asc" },
-    });
+    const occurrencesPromise = db
+      .select({
+        id: plannedOccurrences.id,
+        habit_id: plannedOccurrences.habit_id,
+        date: plannedOccurrences.date,
+        planned_weight_cu: plannedOccurrences.planned_weight_cu,
+        context_tag: plannedOccurrences.context_tag,
+        habit_title: habits.title,
+        habit_weight_cu: habits.weight_cu,
+        habit_has_micro: habits.has_micro,
+        habit_micro_weight_cu: habits.micro_weight_cu,
+      })
+      .from(plannedOccurrences)
+      .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+      .where(
+        and(
+          eq(habits.user_id, user.id),
+          gte(plannedOccurrences.date, selectedWeekWindow.weekStartDate),
+          lte(plannedOccurrences.date, selectedWeekWindow.weekEndDate),
+        ),
+      )
+      .orderBy(asc(plannedOccurrences.date));
 
-    const [capacityPlan, habits, occurrences] = await Promise.all([
+    const [capacityPlan, userHabits, occurrences] = await Promise.all([
       capacityPromise,
       habitsPromise,
       occurrencesPromise,
@@ -242,19 +265,20 @@ export async function GET(request: Request) {
 
     occurrences.forEach((occurrence) => {
       const dateKey = formatDateUTC(occurrence.date);
-      const plannedWeight = occurrence.planned_weight_cu.toString();
+      const plannedWeight = occurrence.planned_weight_cu?.toString() ?? "0";
       plannedTotal += toNumber(plannedWeight);
 
       const list = occurrencesByDate.get(dateKey) ?? [];
       list.push({
         id: occurrence.id,
         habit_id: occurrence.habit_id,
-        habit_title: occurrence.habit.title,
+        habit_title: occurrence.habit_title,
         planned_weight_cu: plannedWeight,
         context_tag: occurrence.context_tag,
-        habit_weight_cu: occurrence.habit.weight_cu.toString(),
-        habit_has_micro: occurrence.habit.has_micro,
-        habit_micro_weight_cu: occurrence.habit.micro_weight_cu.toString(),
+        habit_weight_cu: occurrence.habit_weight_cu?.toString() ?? "0",
+        habit_has_micro: occurrence.habit_has_micro,
+        habit_micro_weight_cu:
+          occurrence.habit_micro_weight_cu?.toString() ?? "0",
       });
       occurrencesByDate.set(dateKey, list);
     });
@@ -284,13 +308,13 @@ export async function GET(request: Request) {
         weekly_capacity_cu: weeklyCapacity?.toString() ?? null,
         planned_cu: plannedTotal.toString(),
         days,
-        habits: habits.map((habit) => ({
+        habits: userHabits.map((habit) => ({
           id: habit.id,
           title: habit.title,
-          weight_cu: habit.weight_cu.toString(),
-          freq_per_week: habit.freq_per_week.toString(),
+          weight_cu: habit.weight_cu?.toString() ?? "0",
+          freq_per_week: habit.freq_per_week?.toString() ?? "0",
           has_micro: habit.has_micro,
-          micro_weight_cu: habit.micro_weight_cu.toString(),
+          micro_weight_cu: habit.micro_weight_cu?.toString() ?? "0",
           context_tags: habit.context_tags ?? [],
         })),
       },
@@ -314,8 +338,7 @@ export async function POST(request: Request) {
 
     const parsed = addOccurrenceSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
-      const message =
-        parsed.error.issues[0]?.message ?? "Invalid request body";
+      const message = parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
@@ -325,25 +348,30 @@ export async function POST(request: Request) {
     }
     const user = userResult.data;
 
-    const habit = await prisma.habit.findFirst({
-      where: { id: parsed.data.habit_id, user_id: user.id },
-    });
+    const [habit] = await db
+      .select()
+      .from(habits)
+      .where(
+        and(eq(habits.id, parsed.data.habit_id), eq(habits.user_id, user.id)),
+      )
+      .limit(1);
 
     if (!habit) {
-      return NextResponse.json(
-        { error: "Habit not found." },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Habit not found." }, { status: 404 });
     }
 
     const date = parseIsoDate(parsed.data.date);
 
-    const existing = await prisma.plannedOccurrence.findFirst({
-      where: {
-        habit_id: habit.id,
-        date,
-      },
-    });
+    const [existing] = await db
+      .select({ id: plannedOccurrences.id })
+      .from(plannedOccurrences)
+      .where(
+        and(
+          eq(plannedOccurrences.habit_id, habit.id),
+          eq(plannedOccurrences.date, date),
+        ),
+      )
+      .limit(1);
 
     if (existing) {
       return NextResponse.json(
@@ -355,16 +383,17 @@ export async function POST(request: Request) {
     const plannedWeight =
       parsed.data.planned_weight_cu && parsed.data.planned_weight_cu !== ""
         ? parsed.data.planned_weight_cu
-        : habit.weight_cu.toString();
+        : (habit.weight_cu?.toString() ?? "0");
 
-    const created = await prisma.plannedOccurrence.create({
-      data: {
+    const [created] = await db
+      .insert(plannedOccurrences)
+      .values({
         habit_id: habit.id,
         date,
         planned_weight_cu: plannedWeight,
         context_tag: parsed.data.context_tag ?? null,
-      },
-    });
+      })
+      .returning();
 
     const weekWindow = getWeekWindowFromDate(date);
 
@@ -380,12 +409,12 @@ export async function POST(request: Request) {
           id: created.id,
           habit_id: created.habit_id,
           date: parsed.data.date,
-          planned_weight_cu: created.planned_weight_cu.toString(),
+          planned_weight_cu: created.planned_weight_cu?.toString() ?? "0",
           context_tag: created.context_tag,
           habit_title: habit.title,
-          habit_weight_cu: habit.weight_cu.toString(),
+          habit_weight_cu: habit.weight_cu?.toString() ?? "0",
           habit_has_micro: habit.has_micro,
-          habit_micro_weight_cu: habit.micro_weight_cu.toString(),
+          habit_micro_weight_cu: habit.micro_weight_cu?.toString() ?? "0",
         },
         planned_cu: plannedTotal,
       },
@@ -427,30 +456,40 @@ export async function PATCH(request: Request) {
 
       const fallbackContext = getDateContext(user.tz ?? undefined);
       const weekWindow = parsedCapacity.data.week_start_date
-        ? getWeekWindowFromStart(parseIsoDate(parsedCapacity.data.week_start_date))
+        ? getWeekWindowFromStart(
+            parseIsoDate(parsedCapacity.data.week_start_date),
+          )
         : getWeekWindowFromStart(fallbackContext.weekStartDate);
 
-      const existingPlan = await prisma.capacityPlan.findFirst({
-        where: {
-          user_id: user.id,
-          week_start_date: weekWindow.weekStartDate,
-        },
-      });
+      const [existingPlan] = await db
+        .select()
+        .from(capacityPlans)
+        .where(
+          and(
+            eq(capacityPlans.user_id, user.id),
+            eq(capacityPlans.week_start_date, weekWindow.weekStartDate),
+          ),
+        )
+        .limit(1);
 
       const updatedPlan = existingPlan
-        ? await prisma.capacityPlan.update({
-            where: { id: existingPlan.id },
-            data: {
-              capacity_cu: parsedCapacity.data.capacity_cu,
-            },
-          })
-        : await prisma.capacityPlan.create({
-            data: {
-              user_id: user.id,
-              week_start_date: weekWindow.weekStartDate,
-              capacity_cu: parsedCapacity.data.capacity_cu,
-            },
-          });
+        ? (
+            await db
+              .update(capacityPlans)
+              .set({ capacity_cu: parsedCapacity.data.capacity_cu })
+              .where(eq(capacityPlans.id, existingPlan.id))
+              .returning()
+          )[0]
+        : (
+            await db
+              .insert(capacityPlans)
+              .values({
+                user_id: user.id,
+                week_start_date: weekWindow.weekStartDate,
+                capacity_cu: parsedCapacity.data.capacity_cu,
+              })
+              .returning()
+          )[0];
 
       const plannedTotal = await getPlannedTotal(
         user.id,
@@ -462,7 +501,7 @@ export async function PATCH(request: Request) {
         {
           week_start_date: weekWindow.weekStartDateString,
           week_end_date: weekWindow.weekEndDateString,
-          capacity_cu: updatedPlan.capacity_cu.toString(),
+          capacity_cu: updatedPlan?.capacity_cu?.toString() ?? "0",
           planned_cu: plannedTotal,
         },
         { status: 200 },
@@ -471,8 +510,7 @@ export async function PATCH(request: Request) {
 
     const parsed = updateOccurrenceSchema.safeParse(body);
     if (!parsed.success) {
-      const message =
-        parsed.error.issues[0]?.message ?? "Invalid request body";
+      const message = parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
@@ -482,13 +520,27 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
-    const occurrence = await prisma.plannedOccurrence.findFirst({
-      where: {
-        id: parsed.data.occurrence_id,
-        habit: { user_id: user.id },
-      },
-      include: { habit: true },
-    });
+    const [occurrence] = await db
+      .select({
+        id: plannedOccurrences.id,
+        habit_id: plannedOccurrences.habit_id,
+        date: plannedOccurrences.date,
+        planned_weight_cu: plannedOccurrences.planned_weight_cu,
+        context_tag: plannedOccurrences.context_tag,
+        habit_title: habits.title,
+        habit_weight_cu: habits.weight_cu,
+        habit_has_micro: habits.has_micro,
+        habit_micro_weight_cu: habits.micro_weight_cu,
+      })
+      .from(plannedOccurrences)
+      .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+      .where(
+        and(
+          eq(plannedOccurrences.id, parsed.data.occurrence_id),
+          eq(habits.user_id, user.id),
+        ),
+      )
+      .limit(1);
 
     if (!occurrence) {
       return NextResponse.json(
@@ -516,13 +568,17 @@ export async function PATCH(request: Request) {
     }
 
     if (updateData.date) {
-      const existing = await prisma.plannedOccurrence.findFirst({
-        where: {
-          habit_id: occurrence.habit_id,
-          date: updateData.date,
-          NOT: { id: occurrence.id },
-        },
-      });
+      const [existing] = await db
+        .select({ id: plannedOccurrences.id })
+        .from(plannedOccurrences)
+        .where(
+          and(
+            eq(plannedOccurrences.habit_id, occurrence.habit_id),
+            eq(plannedOccurrences.date, updateData.date),
+            ne(plannedOccurrences.id, occurrence.id),
+          ),
+        )
+        .limit(1);
 
       if (existing) {
         return NextResponse.json(
@@ -532,10 +588,11 @@ export async function PATCH(request: Request) {
       }
     }
 
-    const updated = await prisma.plannedOccurrence.update({
-      where: { id: occurrence.id },
-      data: updateData,
-    });
+    const [updated] = await db
+      .update(plannedOccurrences)
+      .set(updateData)
+      .where(eq(plannedOccurrences.id, occurrence.id))
+      .returning();
 
     const targetDate = updateData.date ?? occurrence.date;
     const weekWindow = getWeekWindowFromDate(targetDate);
@@ -552,12 +609,13 @@ export async function PATCH(request: Request) {
           id: updated.id,
           habit_id: updated.habit_id,
           date: formatDateUTC(updated.date),
-          planned_weight_cu: updated.planned_weight_cu.toString(),
+          planned_weight_cu: updated.planned_weight_cu?.toString() ?? "0",
           context_tag: updated.context_tag,
-          habit_title: occurrence.habit.title,
-          habit_weight_cu: occurrence.habit.weight_cu.toString(),
-          habit_has_micro: occurrence.habit.has_micro,
-          habit_micro_weight_cu: occurrence.habit.micro_weight_cu.toString(),
+          habit_title: occurrence.habit_title,
+          habit_weight_cu: occurrence.habit_weight_cu?.toString() ?? "0",
+          habit_has_micro: occurrence.habit_has_micro,
+          habit_micro_weight_cu:
+            occurrence.habit_micro_weight_cu?.toString() ?? "0",
         },
         planned_cu: plannedTotal,
       },
@@ -581,8 +639,7 @@ export async function DELETE(request: Request) {
 
     const parsed = deleteOccurrenceSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
-      const message =
-        parsed.error.issues[0]?.message ?? "Invalid request body";
+      const message = parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
@@ -592,12 +649,20 @@ export async function DELETE(request: Request) {
     }
     const user = userResult.data;
 
-    const occurrence = await prisma.plannedOccurrence.findFirst({
-      where: {
-        id: parsed.data.occurrence_id,
-        habit: { user_id: user.id },
-      },
-    });
+    const [occurrence] = await db
+      .select({
+        id: plannedOccurrences.id,
+        date: plannedOccurrences.date,
+      })
+      .from(plannedOccurrences)
+      .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+      .where(
+        and(
+          eq(plannedOccurrences.id, parsed.data.occurrence_id),
+          eq(habits.user_id, user.id),
+        ),
+      )
+      .limit(1);
 
     if (!occurrence) {
       return NextResponse.json(
@@ -608,9 +673,9 @@ export async function DELETE(request: Request) {
 
     const weekWindow = getWeekWindowFromDate(occurrence.date);
 
-    await prisma.plannedOccurrence.delete({
-      where: { id: occurrence.id },
-    });
+    await db
+      .delete(plannedOccurrences)
+      .where(eq(plannedOccurrences.id, occurrence.id));
 
     const plannedTotal = await getPlannedTotal(
       user.id,
@@ -618,10 +683,7 @@ export async function DELETE(request: Request) {
       weekWindow.weekEndDate,
     );
 
-    return NextResponse.json(
-      { planned_cu: plannedTotal },
-      { status: 200 },
-    );
+    return NextResponse.json({ planned_cu: plannedTotal }, { status: 200 });
   } catch (error) {
     console.error("Delete plan error:", error);
     return NextResponse.json(

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prismaClient";
+import { eq, and, gte, lte, asc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import {
+  habits,
+  plannedOccurrences,
+  habitEntries,
+  capacityPlans,
+} from "@/lib/db/schema";
 import { formatDateUTC, getDateContext } from "@/lib/date";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
@@ -83,38 +90,65 @@ export async function GET() {
     const { todayDateString, weekStartDate, weekEndDate, weekStartDateString } =
       getDateContext(user.tz ?? undefined);
 
-    const capacityPlan = await prisma.capacityPlan.findFirst({
-      where: {
-        user_id: user.id,
-        week_start_date: weekStartDate,
-      },
-    });
+    const [capacityPlan] = await db
+      .select()
+      .from(capacityPlans)
+      .where(
+        and(
+          eq(capacityPlans.user_id, user.id),
+          eq(capacityPlans.week_start_date, weekStartDate),
+        ),
+      )
+      .limit(1);
 
     const weeklyCapacity =
       capacityPlan?.capacity_cu ?? user.weekly_capacity_cu_default ?? null;
 
-    const plannedOccurrences = await prisma.plannedOccurrence.findMany({
-      where: {
-        habit: { user_id: user.id },
-        date: { gte: weekStartDate, lte: weekEndDate },
-      },
-      include: { habit: true },
-      orderBy: { date: "asc" },
-    });
+    const allPlannedOccurrences = await db
+      .select({
+        id: plannedOccurrences.id,
+        habit_id: plannedOccurrences.habit_id,
+        date: plannedOccurrences.date,
+        planned_weight_cu: plannedOccurrences.planned_weight_cu,
+        context_tag: plannedOccurrences.context_tag,
+        habit_title: habits.title,
+        habit_weight_cu: habits.weight_cu,
+        habit_has_micro: habits.has_micro,
+        habit_micro_title: habits.micro_title,
+        habit_micro_weight_cu: habits.micro_weight_cu,
+        habit_context_tags: habits.context_tags,
+      })
+      .from(plannedOccurrences)
+      .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+      .where(
+        and(
+          eq(habits.user_id, user.id),
+          gte(plannedOccurrences.date, weekStartDate),
+          lte(plannedOccurrences.date, weekEndDate),
+        ),
+      )
+      .orderBy(asc(plannedOccurrences.date));
 
-    const entries = await prisma.habitEntry.findMany({
-      where: {
-        habit: { user_id: user.id },
-        date: { gte: weekStartDate, lte: weekEndDate },
-      },
-    });
+    const allEntries = await db
+      .select()
+      .from(habitEntries)
+      .innerJoin(habits, eq(habitEntries.habit_id, habits.id))
+      .where(
+        and(
+          eq(habits.user_id, user.id),
+          gte(habitEntries.date, weekStartDate),
+          lte(habitEntries.date, weekEndDate),
+        ),
+      );
+
+    const entries = allEntries.map((row) => row.habit_entries);
 
     const { used, plannedTotal, entryByKey } = computeWeekUsage(
-      plannedOccurrences,
+      allPlannedOccurrences,
       entries,
     );
 
-    const items = plannedOccurrences
+    const items = allPlannedOccurrences
       .filter(
         (occurrence) => formatDateUTC(occurrence.date) === todayDateString,
       )
@@ -123,20 +157,23 @@ export async function GET() {
         const entryKey = `${occurrence.habit_id}-${dateKey}`;
         const entry = entryByKey.get(entryKey);
         const contextTag =
-          occurrence.context_tag ?? occurrence.habit.context_tags?.[0] ?? null;
+          occurrence.context_tag ?? occurrence.habit_context_tags?.[0] ?? null;
 
         return {
           occurrence_id: occurrence.id,
           habit_id: occurrence.habit_id,
-          habit_title: occurrence.habit.title,
-          habit_weight_cu: occurrence.habit.weight_cu.toString(),
-          habit_has_micro: occurrence.habit.has_micro,
-          habit_micro_title: occurrence.habit.micro_title,
-          habit_micro_weight_cu: occurrence.habit.micro_weight_cu.toString(),
-          planned_weight_cu: occurrence.planned_weight_cu.toString(),
+          habit_title: occurrence.habit_title,
+          habit_weight_cu: occurrence.habit_weight_cu?.toString() ?? "0",
+          habit_has_micro: occurrence.habit_has_micro,
+          habit_micro_title: occurrence.habit_micro_title,
+          habit_micro_weight_cu:
+            occurrence.habit_micro_weight_cu?.toString() ?? "0",
+          planned_weight_cu: occurrence.planned_weight_cu?.toString() ?? "0",
           context_tag: contextTag,
           status: entry?.status ?? "planned",
-          actual_weight_cu: entry ? entry.actual_weight_cu.toString() : null,
+          actual_weight_cu: entry
+            ? (entry.actual_weight_cu?.toString() ?? null)
+            : null,
           entry_id: entry?.id ?? null,
         };
       });
@@ -183,22 +220,36 @@ export async function POST(request: Request) {
     const { todayDateString, weekStartDate, weekEndDate, weekStartDateString } =
       getDateContext(user.tz ?? undefined);
 
-    const occurrence = await prisma.plannedOccurrence.findFirst({
-      where: {
-        id: parsed.data.occurrenceId,
-        habit: { user_id: user.id },
-      },
-      include: { habit: true },
-    });
+    const [occurrenceRow] = await db
+      .select({
+        id: plannedOccurrences.id,
+        habit_id: plannedOccurrences.habit_id,
+        date: plannedOccurrences.date,
+        planned_weight_cu: plannedOccurrences.planned_weight_cu,
+        context_tag: plannedOccurrences.context_tag,
+        habit_title: habits.title,
+        habit_weight_cu: habits.weight_cu,
+        habit_has_micro: habits.has_micro,
+        habit_micro_weight_cu: habits.micro_weight_cu,
+      })
+      .from(plannedOccurrences)
+      .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+      .where(
+        and(
+          eq(plannedOccurrences.id, parsed.data.occurrenceId),
+          eq(habits.user_id, user.id),
+        ),
+      )
+      .limit(1);
 
-    if (!occurrence) {
+    if (!occurrenceRow) {
       return NextResponse.json(
         { error: "Planned habit not found." },
         { status: 404 },
       );
     }
 
-    const occurrenceDate = formatDateUTC(occurrence.date);
+    const occurrenceDate = formatDateUTC(occurrenceRow.date);
     if (occurrenceDate !== todayDateString) {
       return NextResponse.json(
         { error: "Only today’s habits can be updated here." },
@@ -207,81 +258,106 @@ export async function POST(request: Request) {
     }
 
     const { action } = parsed.data;
-    const habit = occurrence.habit;
-    const plannedWeight = toNumber(occurrence.planned_weight_cu);
-    const habitWeight = toNumber(habit.weight_cu);
-    const habitMicroWeight = toNumber(habit.micro_weight_cu);
+    const plannedWeight = toNumber(occurrenceRow.planned_weight_cu);
+    const habitWeight = toNumber(occurrenceRow.habit_weight_cu);
+    const habitMicroWeight = toNumber(occurrenceRow.habit_micro_weight_cu);
 
     let actualWeight = 0;
     if (action === "done") {
       actualWeight = habitWeight || plannedWeight;
     } else if (action === "micro_done") {
-      if (habit.has_micro && habitMicroWeight > 0) {
+      if (occurrenceRow.habit_has_micro && habitMicroWeight > 0) {
         actualWeight = habitMicroWeight;
       } else {
         actualWeight = Math.max(0.1, plannedWeight * 0.5);
       }
     }
 
-    const existingEntry = await prisma.habitEntry.findFirst({
-      where: {
-        habit_id: occurrence.habit_id,
-        date: occurrence.date,
-      },
-    });
+    const [existingEntry] = await db
+      .select()
+      .from(habitEntries)
+      .where(
+        and(
+          eq(habitEntries.habit_id, occurrenceRow.habit_id),
+          eq(habitEntries.date, occurrenceRow.date),
+        ),
+      )
+      .limit(1);
 
     const entryPayload = {
-      habit_id: occurrence.habit_id,
-      date: occurrence.date,
+      habit_id: occurrenceRow.habit_id,
+      date: occurrenceRow.date,
       actual_weight_cu: actualWeight.toString(),
-      status: action,
+      status: action as "done" | "micro_done" | "skipped",
     };
 
     const entry = existingEntry
-      ? await prisma.habitEntry.update({
-          where: { id: existingEntry.id },
-          data: entryPayload,
-        })
-      : await prisma.habitEntry.create({ data: entryPayload });
+      ? (
+          await db
+            .update(habitEntries)
+            .set(entryPayload)
+            .where(eq(habitEntries.id, existingEntry.id))
+            .returning()
+        )[0]
+      : (await db.insert(habitEntries).values(entryPayload).returning())[0];
 
-    const capacityPlan = await prisma.capacityPlan.findFirst({
-      where: {
-        user_id: user.id,
-        week_start_date: weekStartDate,
-      },
-    });
+    const [capacityPlan] = await db
+      .select()
+      .from(capacityPlans)
+      .where(
+        and(
+          eq(capacityPlans.user_id, user.id),
+          eq(capacityPlans.week_start_date, weekStartDate),
+        ),
+      )
+      .limit(1);
 
     const weeklyCapacity =
       capacityPlan?.capacity_cu ?? user.weekly_capacity_cu_default ?? null;
 
-    const plannedOccurrences = await prisma.plannedOccurrence.findMany({
-      where: {
-        habit: { user_id: user.id },
-        date: { gte: weekStartDate, lte: weekEndDate },
-      },
-    });
+    const weekPlannedOccurrences = await db
+      .select({
+        habit_id: plannedOccurrences.habit_id,
+        date: plannedOccurrences.date,
+        planned_weight_cu: plannedOccurrences.planned_weight_cu,
+      })
+      .from(plannedOccurrences)
+      .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
+      .where(
+        and(
+          eq(habits.user_id, user.id),
+          gte(plannedOccurrences.date, weekStartDate),
+          lte(plannedOccurrences.date, weekEndDate),
+        ),
+      );
 
-    const entries = await prisma.habitEntry.findMany({
-      where: {
-        habit: { user_id: user.id },
-        date: { gte: weekStartDate, lte: weekEndDate },
-      },
-    });
+    const weekEntries = await db
+      .select()
+      .from(habitEntries)
+      .innerJoin(habits, eq(habitEntries.habit_id, habits.id))
+      .where(
+        and(
+          eq(habits.user_id, user.id),
+          gte(habitEntries.date, weekStartDate),
+          lte(habitEntries.date, weekEndDate),
+        ),
+      )
+      .then((rows) => rows.map((r) => r.habit_entries));
 
     const { used, plannedTotal } = computeWeekUsage(
-      plannedOccurrences,
-      entries,
+      weekPlannedOccurrences,
+      weekEntries,
     );
 
     return NextResponse.json(
       {
         message: "Habit updated.",
         entry: {
-          id: entry.id,
-          habit_id: entry.habit_id,
-          date: formatDateUTC(entry.date),
-          status: entry.status,
-          actual_weight_cu: entry.actual_weight_cu.toString(),
+          id: entry?.id,
+          habit_id: entry?.habit_id,
+          date: entry ? formatDateUTC(entry.date) : null,
+          status: entry?.status,
+          actual_weight_cu: entry?.actual_weight_cu?.toString() ?? "0",
         },
         week_usage: {
           weekly_capacity_cu: weeklyCapacity?.toString() ?? null,

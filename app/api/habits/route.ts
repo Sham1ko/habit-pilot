@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prismaClient";
+import { eq, and, desc } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { habits } from "@/lib/db/schema";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 
@@ -156,8 +158,9 @@ export async function POST(request: Request) {
     const microTitle = micro_title ?? null;
     const hasMicro = computeHasMicro(microTitle, micro_weight_cu);
 
-    const createdHabit = await prisma.habit.create({
-      data: {
+    const [createdHabit] = await db
+      .insert(habits)
+      .values({
         user_id: user.id,
         title,
         description: description ?? null,
@@ -169,8 +172,8 @@ export async function POST(request: Request) {
         micro_weight_cu,
         context_tags,
         is_active: true,
-      },
-    });
+      })
+      .returning();
 
     return NextResponse.json(
       {
@@ -196,12 +199,13 @@ export async function GET() {
     }
     const user = userResult.data;
 
-    const habits = await prisma.habit.findMany({
-      where: { user_id: user.id },
-      orderBy: { created_at: "desc" },
-    });
+    const allHabits = await db
+      .select()
+      .from(habits)
+      .where(eq(habits.user_id, user.id))
+      .orderBy(desc(habits.created_at));
 
-    return NextResponse.json({ habits }, { status: 200 });
+    return NextResponse.json({ habits: allHabits }, { status: 200 });
   } catch (error) {
     console.error("Fetch habits error:", error);
     return NextResponse.json(
@@ -231,9 +235,11 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
-    const habit = await prisma.habit.findFirst({
-      where: { id: parsed.data.id, user_id: user.id },
-    });
+    const [habit] = await db
+      .select()
+      .from(habits)
+      .where(and(eq(habits.id, parsed.data.id), eq(habits.user_id, user.id)))
+      .limit(1);
 
     if (!habit) {
       return NextResponse.json({ error: "Habit not found" }, { status: 404 });
@@ -284,10 +290,11 @@ export async function PATCH(request: Request) {
       updateData.has_micro = computeHasMicro(nextMicroTitle, nextMicroWeight);
     }
 
-    const updatedHabit = await prisma.habit.update({
-      where: { id: habit.id },
-      data: updateData,
-    });
+    const [updatedHabit] = await db
+      .update(habits)
+      .set(updateData)
+      .where(eq(habits.id, habit.id))
+      .returning();
 
     return NextResponse.json(
       { message: "Habit updated", habit: updatedHabit },
@@ -321,18 +328,17 @@ export async function DELETE(request: Request) {
     }
     const user = userResult.data;
 
-    const habit = await prisma.habit.findFirst({
-      where: { id: parsed.data.id, user_id: user.id },
-      select: { id: true },
-    });
+    const [habit] = await db
+      .select({ id: habits.id })
+      .from(habits)
+      .where(and(eq(habits.id, parsed.data.id), eq(habits.user_id, user.id)))
+      .limit(1);
 
     if (!habit) {
       return NextResponse.json({ error: "Habit not found" }, { status: 404 });
     }
 
-    await prisma.habit.delete({
-      where: { id: habit.id },
-    });
+    await db.delete(habits).where(eq(habits.id, habit.id));
 
     return NextResponse.json({ message: "Habit deleted" }, { status: 200 });
   } catch (error) {

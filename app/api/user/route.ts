@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prismaClient";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 
@@ -40,13 +42,13 @@ export async function GET() {
         weekly_capacity_cu_default:
           user.weekly_capacity_cu_default?.toString() ?? null,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Fetch user error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -70,12 +72,13 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
         weekly_capacity_cu_default: parsed.data.weekly_capacity_cu_default,
-      },
-    });
+      })
+      .where(eq(users.id, user.id))
+      .returning();
 
     return NextResponse.json(
       {
@@ -83,13 +86,13 @@ export async function PATCH(request: Request) {
         weekly_capacity_cu_default:
           updatedUser.weekly_capacity_cu_default?.toString() ?? null,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Update user error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
