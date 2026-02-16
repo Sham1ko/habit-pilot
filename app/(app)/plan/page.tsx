@@ -155,7 +155,9 @@ function normalizePlanResponse(data: PlanResponse): PlanData {
     week_start_date: data.week_start_date,
     week_end_date: data.week_end_date,
     today_date: data.today_date,
-    weekly_capacity_cu: data.weekly_capacity_cu ? Number(data.weekly_capacity_cu) : null,
+    weekly_capacity_cu: data.weekly_capacity_cu
+      ? Number(data.weekly_capacity_cu)
+      : null,
     planned_cu: Number(data.planned_cu),
     days: data.days.map((day) => ({
       date: day.date,
@@ -239,9 +241,13 @@ export default function PlanPage() {
       setError(null);
 
       try {
-        const query = weekStart ? `?week_start=${encodeURIComponent(weekStart)}` : "";
+        const query = weekStart
+          ? `?week_start=${encodeURIComponent(weekStart)}`
+          : "";
         const response = await fetch(`/api/plan${query}`);
-        const responseData = (await response.json().catch(() => null)) as PlanResponse | null;
+        const responseData = (await response
+          .json()
+          .catch(() => null)) as PlanResponse | null;
 
         if (!response.ok || !responseData) {
           throw new Error(responseData?.error ?? "Failed to load weekly plan.");
@@ -253,7 +259,9 @@ export default function PlanPage() {
         setData(normalized);
       } catch (loadError) {
         setError(
-          loadError instanceof Error ? loadError.message : "Failed to load weekly plan.",
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load weekly plan.",
         );
       } finally {
         if (showLoading) {
@@ -289,15 +297,20 @@ export default function PlanPage() {
           }),
         });
 
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
+        const responseData = (await response
+          .json()
+          .catch(() => null)) as OccurrenceResponse | null;
 
         if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to save added occurrence.");
+          throw new Error(
+            responseData?.error ?? "Failed to save added occurrence.",
+          );
         }
 
-        idMapRef.current.set(mutation.clientOccurrenceId, responseData.occurrence.id);
+        idMapRef.current.set(
+          mutation.clientOccurrenceId,
+          responseData.occurrence.id,
+        );
 
         setData((prev) => {
           if (!prev) {
@@ -308,17 +321,23 @@ export default function PlanPage() {
             id: responseData.occurrence.id,
             habit_id: responseData.occurrence.habit_id,
             habit_title: responseData.occurrence.habit_title,
-            planned_weight_cu: Number(responseData.occurrence.planned_weight_cu),
+            planned_weight_cu: Number(
+              responseData.occurrence.planned_weight_cu,
+            ),
             context_tag: responseData.occurrence.context_tag,
             habit_weight_cu: Number(responseData.occurrence.habit_weight_cu),
             habit_has_micro: responseData.occurrence.habit_has_micro,
-            habit_micro_weight_cu: Number(responseData.occurrence.habit_micro_weight_cu),
+            habit_micro_weight_cu: Number(
+              responseData.occurrence.habit_micro_weight_cu,
+            ),
           };
 
           const days = prev.days.map((day) => ({
             ...day,
             occurrences: day.occurrences.map((occurrence) =>
-              occurrence.id === mutation.clientOccurrenceId ? nextOccurrence : occurrence,
+              occurrence.id === mutation.clientOccurrenceId
+                ? nextOccurrence
+                : occurrence,
             ),
           }));
 
@@ -346,12 +365,14 @@ export default function PlanPage() {
           }),
         });
 
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
+        const responseData = (await response
+          .json()
+          .catch(() => null)) as OccurrenceResponse | null;
 
         if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to move planned occurrence.");
+          throw new Error(
+            responseData?.error ?? "Failed to move planned occurrence.",
+          );
         }
 
         return;
@@ -368,10 +389,14 @@ export default function PlanPage() {
           }),
         });
 
-        const responseData = (await response.json().catch(() => null)) as DeleteResponse | null;
+        const responseData = (await response
+          .json()
+          .catch(() => null)) as DeleteResponse | null;
 
         if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to unplan occurrence.");
+          throw new Error(
+            responseData?.error ?? "Failed to unplan occurrence.",
+          );
         }
 
         return;
@@ -389,12 +414,14 @@ export default function PlanPage() {
           }),
         });
 
-        const responseData = (await response.json().catch(() => null)) as
-          | OccurrenceResponse
-          | null;
+        const responseData = (await response
+          .json()
+          .catch(() => null)) as OccurrenceResponse | null;
 
         if (!response.ok || !responseData) {
-          throw new Error(responseData?.error ?? "Failed to convert to micro-step.");
+          throw new Error(
+            responseData?.error ?? "Failed to convert to micro-step.",
+          );
         }
 
         return;
@@ -409,10 +436,14 @@ export default function PlanPage() {
         }),
       });
 
-      const responseData = (await response.json().catch(() => null)) as CapacityResponse | null;
+      const responseData = (await response
+        .json()
+        .catch(() => null)) as CapacityResponse | null;
 
       if (!response.ok || !responseData) {
-        throw new Error(responseData?.error ?? "Failed to update weekly capacity.");
+        throw new Error(
+          responseData?.error ?? "Failed to update weekly capacity.",
+        );
       }
     },
     [resolveOccurrenceId],
@@ -451,7 +482,9 @@ export default function PlanPage() {
     if (failureMessage) {
       setSaveStatus("idle");
       showErrorToast(failureMessage);
-      void loadPlan(activeWeekStartRef.current ?? undefined, { showLoading: false });
+      void loadPlan(activeWeekStartRef.current ?? undefined, {
+        showLoading: false,
+      });
       return;
     }
 
@@ -471,7 +504,8 @@ export default function PlanPage() {
       if (mutation.kind === "set_capacity") {
         queueRef.current = queueRef.current.filter((item) => {
           return !(
-            item.kind === "set_capacity" && item.weekStartDate === mutation.weekStartDate
+            item.kind === "set_capacity" &&
+            item.weekStartDate === mutation.weekStartDate
           );
         });
       }
@@ -618,8 +652,13 @@ export default function PlanPage() {
         const targetDay = withoutSource.find((day) => day.date === targetDate);
 
         if (targetDay) {
-          if (targetDay.occurrences.some((item) => item.habit_id === sourceOccurrence?.habit_id)) {
-            validationError = "That habit is already planned on the selected day.";
+          if (
+            targetDay.occurrences.some(
+              (item) => item.habit_id === sourceOccurrence?.habit_id,
+            )
+          ) {
+            validationError =
+              "That habit is already planned on the selected day.";
             return prev;
           }
 
@@ -739,13 +778,19 @@ export default function PlanPage() {
               return occurrence;
             }
 
-            if (!occurrence.habit_has_micro || occurrence.habit_micro_weight_cu <= 0) {
+            if (
+              !occurrence.habit_has_micro ||
+              occurrence.habit_micro_weight_cu <= 0
+            ) {
               validationError = "This occurrence does not support micro-step.";
               return occurrence;
             }
 
-            if (occurrence.planned_weight_cu <= occurrence.habit_micro_weight_cu) {
-              validationError = "This occurrence is already at micro-step weight.";
+            if (
+              occurrence.planned_weight_cu <= occurrence.habit_micro_weight_cu
+            ) {
+              validationError =
+                "This occurrence is already at micro-step weight.";
               return occurrence;
             }
 
@@ -868,38 +913,45 @@ export default function PlanPage() {
   const isOverloaded =
     weeklyCapacity !== null && weeklyCapacity > 0 && plannedCu > weeklyCapacity;
   const overloadBy =
-    weeklyCapacity !== null && weeklyCapacity > 0 ? Math.max(plannedCu - weeklyCapacity, 0) : 0;
+    weeklyCapacity !== null && weeklyCapacity > 0
+      ? Math.max(plannedCu - weeklyCapacity, 0)
+      : 0;
 
-  const overloadMicroSuggestion = useMemo<OverloadMicroSuggestion | null>(() => {
-    if (!data || !isOverloaded) {
-      return null;
-    }
+  const overloadMicroSuggestion =
+    useMemo<OverloadMicroSuggestion | null>(() => {
+      if (!data || !isOverloaded) {
+        return null;
+      }
 
-    let best: OverloadMicroSuggestion | null = null;
+      let best: OverloadMicroSuggestion | null = null;
 
-    data.days.forEach((day) => {
-      day.occurrences.forEach((occurrence) => {
-        if (!occurrence.habit_has_micro || occurrence.habit_micro_weight_cu <= 0) {
-          return;
-        }
+      data.days.forEach((day) => {
+        day.occurrences.forEach((occurrence) => {
+          if (
+            !occurrence.habit_has_micro ||
+            occurrence.habit_micro_weight_cu <= 0
+          ) {
+            return;
+          }
 
-        const savings = occurrence.planned_weight_cu - occurrence.habit_micro_weight_cu;
-        if (savings <= 0) {
-          return;
-        }
+          const savings =
+            occurrence.planned_weight_cu - occurrence.habit_micro_weight_cu;
+          if (savings <= 0) {
+            return;
+          }
 
-        if (!best || savings > best.savingsCu) {
-          best = {
-            occurrenceId: occurrence.id,
-            habitTitle: occurrence.habit_title,
-            savingsCu: savings,
-          };
-        }
+          if (!best || savings > best.savingsCu) {
+            best = {
+              occurrenceId: occurrence.id,
+              habitTitle: occurrence.habit_title,
+              savingsCu: savings,
+            };
+          }
+        });
       });
-    });
 
-    return best;
-  }, [data, isOverloaded]);
+      return best;
+    }, [data, isOverloaded]);
 
   const overloadMoveSuggestion = useMemo<OverloadMoveSuggestion | null>(() => {
     if (!data || !isOverloaded) {
@@ -914,7 +966,9 @@ export default function PlanPage() {
           biggestOccurrence = occurrence;
           return;
         }
-        if (occurrence.planned_weight_cu > biggestOccurrence.planned_weight_cu) {
+        if (
+          occurrence.planned_weight_cu > biggestOccurrence.planned_weight_cu
+        ) {
           biggestOccurrence = occurrence;
         }
       });
@@ -939,7 +993,9 @@ export default function PlanPage() {
     const virtualDays = data.days.map((day) => ({
       date: day.date,
       load: day.planned_cu,
-      habitIds: new Set(day.occurrences.map((occurrence) => occurrence.habit_id)),
+      habitIds: new Set(
+        day.occurrences.map((occurrence) => occurrence.habit_id),
+      ),
     }));
 
     const placements: Array<{ habitId: number; date: string }> = [];
@@ -1015,12 +1071,19 @@ export default function PlanPage() {
   );
 
   const currentWeekStart = data ? getWeekStartDate(data.today_date) : null;
-  const isCurrentWeek = data && currentWeekStart ? data.week_start_date === currentWeekStart : false;
+  const isCurrentWeek =
+    data && currentWeekStart
+      ? data.week_start_date === currentWeekStart
+      : false;
 
   const scrollToDay = useCallback((date: string) => {
     const target = document.querySelector(`[data-plan-date=\"${date}\"]`);
     if (target instanceof HTMLElement) {
-      target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
     }
   }, []);
 
@@ -1065,7 +1128,7 @@ export default function PlanPage() {
 
   if (isLoading && !data) {
     return (
-      <section className="space-y-6">
+      <section className="flex flex-1 flex-col min-h-0 gap-4 py-4">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="h-5 w-52 animate-pulse rounded bg-muted" />
           <div className="h-6 w-64 animate-pulse rounded bg-muted" />
@@ -1112,7 +1175,7 @@ export default function PlanPage() {
 
   return (
     <>
-      <section className="space-y-6">
+      <section className="flex flex-1 flex-col min-h-0 gap-4">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <p className="max-w-xl text-sm text-muted-foreground">
             Plan your week within capacity.
@@ -1121,7 +1184,12 @@ export default function PlanPage() {
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Dialog>
               <DialogTrigger asChild>
-                <Button type="button" variant="link" size="sm" className="h-auto p-0">
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0"
+                >
                   Learn more
                 </Button>
               </DialogTrigger>
@@ -1129,8 +1197,9 @@ export default function PlanPage() {
                 <DialogHeader>
                   <DialogTitle>How weekly planning works</DialogTitle>
                   <DialogDescription>
-                    Add habit occurrences across Mon-Sun, keep planned CU under weekly capacity,
-                    and use micro-steps or re-scheduling when overloaded.
+                    Add habit occurrences across Mon-Sun, keep planned CU under
+                    weekly capacity, and use micro-steps or re-scheduling when
+                    overloaded.
                   </DialogDescription>
                 </DialogHeader>
               </DialogContent>
@@ -1163,7 +1232,10 @@ export default function PlanPage() {
             <CapacityMeter plannedCu={plannedCu} capacityCu={weeklyCapacity} />
 
             <div className="flex flex-col gap-2 xl:w-[170px]">
-              <Button type="button" onClick={() => setIsCapacityModalOpen(true)}>
+              <Button
+                type="button"
+                onClick={() => setIsCapacityModalOpen(true)}
+              >
                 Set capacity
               </Button>
               <Button
@@ -1188,7 +1260,10 @@ export default function PlanPage() {
               Create your first habit to start distributing weekly occurrences.
             </p>
             <div className="mt-4">
-              <Link href="/habits" className={cn(buttonVariants({ size: "sm" }))}>
+              <Link
+                href="/habits"
+                className={cn(buttonVariants({ size: "sm" }))}
+              >
                 Create your first habit
               </Link>
             </div>
@@ -1199,13 +1274,15 @@ export default function PlanPage() {
                   className="rounded-lg border border-border/70 bg-background/50 p-3"
                 >
                   <p className="text-sm font-medium">{template.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{template.details}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {template.details}
+                  </p>
                 </div>
               ))}
             </div>
           </section>
         ) : (
-          <div className="grid items-stretch gap-4 rounded-2xl border border-border/80 bg-muted/40 p-3 xl:min-h-[calc(100svh-22rem)] xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid items-stretch gap-4 rounded-2xl border border-border/80 bg-muted/40 p-3 flex-1 min-h-0 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="overflow-x-auto pb-1 xl:h-full">
               <div className="grid min-w-[1120px] grid-cols-7 items-stretch gap-3 xl:h-full">
                 {data.days.map((day) => (

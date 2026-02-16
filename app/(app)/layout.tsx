@@ -13,7 +13,7 @@ export default function AppLayout({
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <main className="flex-1 p-6 md:px-10 md:py-10">{children}</main>
+        <main className="flex flex-1 p-6">{children}</main>
         <OnboardingModal />
       </SidebarInset>
     </SidebarProvider>
