@@ -1,15 +1,21 @@
+import { cookies } from "next/headers";
 import { AppHeader } from "@/components/app-header";
 import OnboardingModal from "@/components/onboarding-modal";
 import AppSidebar from "@/components/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-export default function AppLayout({
+const SIDEBAR_COOKIE_NAME = "sidebar_state";
+
+export default async function AppLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const cookieStore = await cookies();
+	const defaultOpen = cookieStore.get(SIDEBAR_COOKIE_NAME)?.value !== "false";
+
 	return (
-		<SidebarProvider>
+		<SidebarProvider defaultOpen={defaultOpen}>
 			<AppSidebar />
 			<SidebarInset>
 				<AppHeader />
