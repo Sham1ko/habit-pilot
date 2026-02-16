@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,21 +14,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCu } from "./plan-utils";
 
+export type SetCapacityModalHandle = {
+  open: () => void;
+  close: () => void;
+};
+
 type SetCapacityModalProps = {
-  open: boolean;
   initialCapacityCu: number | null;
   plannedCu: number;
-  onOpenChange: (open: boolean) => void;
   onSave: (capacityCu: number) => void;
 };
 
-export function SetCapacityModal({
-  open,
-  initialCapacityCu,
-  plannedCu,
-  onOpenChange,
-  onSave,
-}: SetCapacityModalProps) {
+export const SetCapacityModal = forwardRef<
+  SetCapacityModalHandle,
+  SetCapacityModalProps
+>(function SetCapacityModal(
+  { initialCapacityCu, plannedCu, onSave },
+  ref,
+) {
+  const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState<string | null>(null);
 
   const defaultValue = useMemo(() => {
@@ -50,11 +54,16 @@ export function SetCapacityModal({
     return Math.ceil(base / 5) * 5 + 20;
   }, [initialCapacityCu, isValid, parsed, plannedCu]);
 
+  useImperativeHandle(ref, () => ({
+    open: () => setOpen(true),
+    close: () => setOpen(false),
+  }));
+
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setDraftValue(null);
     }
-    onOpenChange(nextOpen);
+    setOpen(nextOpen);
   };
 
   return (
@@ -120,4 +129,6 @@ export function SetCapacityModal({
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+SetCapacityModal.displayName = "SetCapacityModal";
