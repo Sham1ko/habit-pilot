@@ -6,50 +6,50 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
 export async function POST(request: Request) {
-	try {
-		const { email, password } = await request.json();
+  try {
+    const { email, password } = await request.json();
 
-		if (!email || !password) {
-			return NextResponse.json(
-				{ error: "Email and password are required" },
-				{ status: 400 },
-			);
-		}
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 },
+      );
+    }
 
-		const [user] = await db
-			.select()
-			.from(users)
-			.where(eq(users.email, email))
-			.limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-		if (!user) {
-			return NextResponse.json(
-				{ error: "Invalid email or password" },
-				{ status: 401 },
-			);
-		}
+    if (!user) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 },
+      );
+    }
 
-		const valid = await verifyPassword(password, user.password_hash);
+    const valid = await verifyPassword(password, user.password_hash);
 
-		if (!valid) {
-			return NextResponse.json(
-				{ error: "Invalid email or password" },
-				{ status: 401 },
-			);
-		}
+    if (!valid) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 },
+      );
+    }
 
-		const token = await signToken({ sub: user.email, userId: user.id });
-		await setAuthCookie(token);
+    const token = await signToken({ sub: user.email, userId: user.id });
+    await setAuthCookie(token);
 
-		return NextResponse.json(
-			{ message: "Login successful", user: { id: user.id, email: user.email } },
-			{ status: 200 },
-		);
-	} catch (error) {
-		console.error("Login error:", error);
-		return NextResponse.json(
-			{ error: "An unexpected error occurred" },
-			{ status: 500 },
-		);
-	}
+    return NextResponse.json(
+      { message: "Login successful", user: { id: user.id, email: user.email } },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred" },
+      { status: 500 },
+    );
+  }
 }
