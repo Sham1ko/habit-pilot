@@ -1,21 +1,21 @@
-import AppSidebar from "@/components/sidebar";
 import { AppHeader } from "@/components/app-header";
 import OnboardingModal from "@/components/onboarding-modal";
+import AppSidebar from "@/components/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AppLayout({
-  children,
+	children,
 }: Readonly<{
-  children: React.ReactNode;
+	children: React.ReactNode;
 }>) {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <main className="flex flex-1 p-6">{children}</main>
-        <OnboardingModal />
-      </SidebarInset>
-    </SidebarProvider>
-  );
+	return (
+		<SidebarProvider>
+			<AppSidebar />
+			<SidebarInset>
+				<AppHeader />
+				<main className="flex flex-1 p-6">{children}</main>
+				<OnboardingModal />
+			</SidebarInset>
+		</SidebarProvider>
+	);
 }

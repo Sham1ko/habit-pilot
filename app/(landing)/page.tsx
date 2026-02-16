@@ -9,19 +9,19 @@ import { PreviewSection } from "./_components/preview-section";
 import { ProblemSection } from "./_components/problem-section";
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
-      <main>
-        <HeroSection />
-        <ProblemSection />
-        <HowItWorksSection />
-        <FeaturesSection />
-        <PreviewSection />
-        <FaqSection />
-        <CtaSection />
-      </main>
-      <Footer />
-    </div>
-  );
+	return (
+		<div className="min-h-screen bg-background text-foreground">
+			<Header />
+			<main>
+				<HeroSection />
+				<ProblemSection />
+				<HowItWorksSection />
+				<FeaturesSection />
+				<PreviewSection />
+				<FaqSection />
+				<CtaSection />
+			</main>
+			<Footer />
+		</div>
+	);
 }
