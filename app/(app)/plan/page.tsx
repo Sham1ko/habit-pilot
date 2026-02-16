@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Info, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,9 +11,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import { CapacityMeter } from "./capacity-meter";
 import { DayColumn } from "./day-column";
+import { NoHabitsPanel } from "./no-habits-panel";
 import {
   buildWeekPlanIcs,
   formatCu,
@@ -134,21 +133,6 @@ type PlanMutation =
       weekStartDate: string;
       capacityCu: number;
     };
-
-const starterTemplates = [
-  {
-    title: "Study 25 min",
-    details: "5x/week, 2 CU, with micro-step",
-  },
-  {
-    title: "Workout 20 min",
-    details: "3x/week, 3 CU, with micro-step",
-  },
-  {
-    title: "Walk 20 min",
-    details: "Daily, 1 CU, low-friction",
-  },
-];
 
 function normalizePlanResponse(data: PlanResponse): PlanData {
   return {
@@ -1254,33 +1238,7 @@ export default function PlanPage() {
         </section>
 
         {data.habits.length === 0 ? (
-          <section className="rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm">
-            <h2 className="text-lg font-semibold">No habits yet</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Create your first habit to start distributing weekly occurrences.
-            </p>
-            <div className="mt-4">
-              <Link
-                href="/habits"
-                className={cn(buttonVariants({ size: "sm" }))}
-              >
-                Create your first habit
-              </Link>
-            </div>
-            <div className="mt-6 grid gap-2 md:grid-cols-3">
-              {starterTemplates.map((template) => (
-                <div
-                  key={template.title}
-                  className="rounded-lg border border-border/70 bg-background/50 p-3"
-                >
-                  <p className="text-sm font-medium">{template.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {template.details}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <NoHabitsPanel />
         ) : (
           <div className="grid items-stretch gap-4 rounded-2xl border border-border/80 bg-muted/40 p-3 flex-1 min-h-0 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="overflow-x-auto pb-1 xl:h-full">
