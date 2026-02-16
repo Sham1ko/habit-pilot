@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { removeAuthCookie } from "@/lib/auth/jwt";
 
 export async function POST() {
 	try {
-		const supabase = await createClient();
-
-		const { error } = await supabase.auth.signOut();
-
-		if (error) {
-			return NextResponse.json({ error: error.message }, { status: 400 });
-		}
-
+		await removeAuthCookie();
 		return NextResponse.json({ message: "Logout successful" }, { status: 200 });
 	} catch (error) {
 		console.error("Logout error:", error);

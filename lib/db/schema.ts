@@ -28,6 +28,7 @@ export const habitEntryStatusEnum = pgEnum("HabitEntryStatus", [
 export const users = pgTable("users", {
 	id: serial("id").primaryKey(),
 	email: text("email").notNull().unique(),
+	password_hash: text("password_hash").notNull(),
 	name: text("name"),
 	tz: text("tz"),
 	weekly_capacity_cu_default: numeric("weekly_capacity_cu_default"),

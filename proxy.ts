@@ -1,8 +1,42 @@
-import type { NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { jwtVerify } from "jose";
+import { type NextRequest, NextResponse } from "next/server";
+
+const PUBLIC_PATHS = ["/", "/login", "/register", "/api/auth"];
+
+function isPublic(pathname: string) {
+	return PUBLIC_PATHS.some(
+		(p) => pathname === p || pathname.startsWith(`${p}/`),
+	);
+}
 
 export async function proxy(request: NextRequest) {
-	return await updateSession(request);
+	const { pathname } = request.nextUrl;
+
+	// Allow public routes through
+	if (isPublic(pathname)) {
+		return NextResponse.next();
+	}
+
+	const token = request.cookies.get("token")?.value;
+
+	if (!token) {
+		const url = request.nextUrl.clone();
+		url.pathname = "/login";
+		return NextResponse.redirect(url);
+	}
+
+	try {
+		const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+		await jwtVerify(token, secret);
+		return NextResponse.next();
+	} catch {
+		// Invalid / expired token → redirect to login
+		const url = request.nextUrl.clone();
+		url.pathname = "/login";
+		const response = NextResponse.redirect(url);
+		response.cookies.delete("token");
+		return response;
+	}
 }
 
 export const config = {
