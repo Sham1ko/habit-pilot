@@ -11,7 +11,6 @@ const actionSchema = z.object({
   action: z.enum(["done", "micro_done", "skipped"]),
 });
 
-
 function computeWeekUsage(
   plannedOccurrences: Array<{
     habit_id: number;
@@ -21,8 +20,9 @@ function computeWeekUsage(
   entries: Array<{
     habit_id: number;
     date: Date;
-    actual_weight_cu: unknown;
+    actual_weight_cu: { toString(): string };
     status: string;
+    id?: string | number;
   }>,
 ) {
   const plannedByKey = new Map<string, number>();
@@ -115,15 +115,15 @@ export async function GET() {
     );
 
     const items = plannedOccurrences
-      .filter((occurrence) => formatDateUTC(occurrence.date) === todayDateString)
+      .filter(
+        (occurrence) => formatDateUTC(occurrence.date) === todayDateString,
+      )
       .map((occurrence) => {
         const dateKey = formatDateUTC(occurrence.date);
         const entryKey = `${occurrence.habit_id}-${dateKey}`;
         const entry = entryByKey.get(entryKey);
         const contextTag =
-          occurrence.context_tag ??
-          occurrence.habit.context_tags?.[0] ??
-          null;
+          occurrence.context_tag ?? occurrence.habit.context_tags?.[0] ?? null;
 
         return {
           occurrence_id: occurrence.id,
@@ -170,8 +170,7 @@ export async function POST(request: Request) {
 
     const parsed = actionSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
-      const message =
-        parsed.error.issues[0]?.message ?? "Invalid request body";
+      const message = parsed.error.issues[0]?.message ?? "Invalid request body";
       return NextResponse.json({ error: message }, { status: 400 });
     }
 

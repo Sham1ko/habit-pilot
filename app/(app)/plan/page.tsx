@@ -505,9 +505,10 @@ export default function PlanPage() {
                 return null;
             }
 
+            const biggest = biggestOccurrence as PlanOccurrence;
             return {
-                occurrenceId: biggestOccurrence.id,
-                habitTitle: biggestOccurrence.habit_title,
+                occurrenceId: biggest.id,
+                habitTitle: biggest.habit_title,
                 targetDate: shiftIsoDate(data.week_start_date, 7),
             };
         }, [data, isOverloaded]);

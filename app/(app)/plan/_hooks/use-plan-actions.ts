@@ -75,8 +75,8 @@ export function usePlanActions({
 }: UsePlanActionsArgs) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const queueRef = useRef<PlanMutation[]>([]);
-  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushTimerRef = useRef<number | null>(null);
+  const saveStateTimerRef = useRef<number | null>(null);
   const isFlushingRef = useRef(false);
 
   const showErrorToast = useCallback((message: string) => {
