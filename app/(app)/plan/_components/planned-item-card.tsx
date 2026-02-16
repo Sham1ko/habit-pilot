@@ -12,8 +12,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatCu } from "./plan-utils";
-import type { PlanOccurrence } from "./types";
+import { formatCu } from "../_lib/plan-utils";
+import type { PlanOccurrence } from "../_lib/types";
 
 type PlannedItemCardProps = {
   occurrence: PlanOccurrence;

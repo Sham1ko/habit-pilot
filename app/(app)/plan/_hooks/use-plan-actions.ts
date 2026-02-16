@@ -3,7 +3,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { PlanDay, PlanData, PlanOccurrence } from "./types";
+import type { PlanDay, PlanData, PlanOccurrence } from "../_lib/types";
 
 const SAVE_DEBOUNCE_MS = 450;
 const SAVE_STATE_TIMEOUT_MS = 1400;

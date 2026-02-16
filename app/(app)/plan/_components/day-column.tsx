@@ -1,8 +1,8 @@
 "use client";
 
-import { formatCu, formatMonthDay, formatWeekday } from "./plan-utils";
+import { formatCu, formatMonthDay, formatWeekday } from "../_lib/plan-utils";
 import { PlannedItemCard } from "./planned-item-card";
-import type { PlanDay } from "./types";
+import type { PlanDay } from "../_lib/types";
 
 type DayColumnProps = {
   day: PlanDay;

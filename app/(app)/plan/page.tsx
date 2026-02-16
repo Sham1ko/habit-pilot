@@ -11,32 +11,32 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CapacityMeter } from "./capacity-meter";
-import { DayColumn } from "./day-column";
-import { NoHabitsPanel } from "./no-habits-panel";
+import { CapacityMeter } from "./_components/capacity-meter";
+import { DayColumn } from "./_components/day-column";
+import { NoHabitsPanel } from "./_components/no-habits-panel";
 import {
   buildWeekPlanIcs,
   formatCu,
   formatDayLabel,
   getWeekStartDate,
   shiftIsoDate,
-} from "./plan-utils";
+} from "./_lib/plan-utils";
 import {
   type OverloadMicroSuggestion,
   type OverloadMoveSuggestion,
   RemainingHabitsPanel,
-} from "./remaining-habits-panel";
+} from "./_components/remaining-habits-panel";
 import {
   SetCapacityModal,
   type SetCapacityModalHandle,
-} from "./set-capacity-modal";
-import type { PlanData, PlanOccurrence, RemainingHabit } from "./types";
+} from "./_components/set-capacity-modal";
+import type { PlanData, PlanOccurrence, RemainingHabit } from "./_lib/types";
 import {
   recalcPlan,
   usePlanActions,
   type PlanMutation,
-} from "./use-plan-actions";
-import { WeekSwitcher } from "./week-switcher";
+} from "./_hooks/use-plan-actions";
+import { WeekSwitcher } from "./_components/week-switcher";
 
 type PlanResponse = {
   week_start_date: string;

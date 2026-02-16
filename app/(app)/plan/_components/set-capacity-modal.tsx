@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCu } from "./plan-utils";
+import { formatCu } from "../_lib/plan-utils";
 
 export type SetCapacityModalHandle = {
   open: () => void;

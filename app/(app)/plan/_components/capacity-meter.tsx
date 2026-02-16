@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { formatCu } from "./plan-utils";
+import { formatCu } from "../_lib/plan-utils";
 
 type CapacityMeterProps = {
   plannedCu: number;

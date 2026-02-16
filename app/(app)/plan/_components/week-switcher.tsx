@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { formatWeekRange } from "./plan-utils";
+import { formatWeekRange } from "../_lib/plan-utils";
 
 type WeekSwitcherProps = {
   weekStartDate: string;

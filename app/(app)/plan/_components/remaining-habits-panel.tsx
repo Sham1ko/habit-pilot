@@ -8,8 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDayLabel, formatCu } from "./plan-utils";
-import type { PlanDay, RemainingHabit } from "./types";
+import { formatDayLabel, formatCu } from "../_lib/plan-utils";
+import type { PlanDay, RemainingHabit } from "../_lib/types";
 
 export type OverloadMicroSuggestion = {
   occurrenceId: string;
