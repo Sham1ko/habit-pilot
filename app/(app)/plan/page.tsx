@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +31,11 @@ import {
   type SetCapacityModalHandle,
 } from "./set-capacity-modal";
 import type { PlanData, PlanOccurrence, RemainingHabit } from "./types";
-import { usePlanActions, type PlanMutation } from "./use-plan-actions";
+import {
+  recalcPlan,
+  usePlanActions,
+  type PlanMutation,
+} from "./use-plan-actions";
 import { WeekSwitcher } from "./week-switcher";
 
 type PlanResponse = {
@@ -360,7 +364,6 @@ export default function PlanPage() {
     setWeeklyCapacity,
     flushMutations,
     saveStatus,
-    toast,
   } = usePlanActions({
     setData,
     executeMutation,
@@ -563,11 +566,6 @@ export default function PlanPage() {
     async (weekStartDate: string) => {
       if (!data || weekStartDate === data.week_start_date) {
         return;
-      }
-
-      if (flushTimerRef.current) {
-        window.clearTimeout(flushTimerRef.current);
-        flushTimerRef.current = null;
       }
 
       await flushMutations();
@@ -807,14 +805,6 @@ export default function PlanPage() {
         onSave={setWeeklyCapacity}
       />
 
-      {toast ? (
-        <div className="fixed right-6 top-6 z-50 max-w-sm rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-lg">
-          <div className="flex items-center gap-2">
-            <Info className="size-4" />
-            <p>{toast.message}</p>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

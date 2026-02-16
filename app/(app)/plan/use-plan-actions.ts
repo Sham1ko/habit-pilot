@@ -2,17 +2,13 @@
 
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { PlanDay, PlanData, PlanOccurrence } from "./types";
 
 const SAVE_DEBOUNCE_MS = 450;
 const SAVE_STATE_TIMEOUT_MS = 1400;
 
 export type SaveStatus = "idle" | "saving" | "saved";
-
-export type ToastState = {
-  id: number;
-  message: string;
-};
 
 export type PlanMutation =
   | {
@@ -52,7 +48,7 @@ type UsePlanActionsArgs = {
   activeWeekStartRef: MutableRefObject<string | null>;
 };
 
-function recalcPlan(days: PlanDay[]) {
+export function recalcPlan(days: PlanDay[]) {
   const recalculatedDays = days.map((day) => ({
     ...day,
     planned_cu: day.occurrences.reduce(
@@ -78,29 +74,14 @@ export function usePlanActions({
   activeWeekStartRef,
 }: UsePlanActionsArgs) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [toast, setToast] = useState<ToastState | null>(null);
-
   const queueRef = useRef<PlanMutation[]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFlushingRef = useRef(false);
-  const toastCounterRef = useRef(0);
 
   const showErrorToast = useCallback((message: string) => {
-    toastCounterRef.current += 1;
-    setToast({ id: toastCounterRef.current, message });
+    toast.error(message);
   }, []);
-
-  useEffect(() => {
-    if (!toast) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setToast(null);
-    }, 3500);
-
-    return () => window.clearTimeout(timer);
-  }, [toast]);
 
   const flushMutations = useCallback(async () => {
     if (isFlushingRef.current || queueRef.current.length === 0) {
@@ -523,6 +504,5 @@ export function usePlanActions({
     setWeeklyCapacity,
     flushMutations,
     saveStatus,
-    toast,
   };
 }
