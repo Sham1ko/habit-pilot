@@ -10,7 +10,7 @@ import {
   CalendarDays,
   Settings,
 } from "lucide-react";
-import { useLogout } from "@/components/logout-button";
+import { LogoutConfirmDialog } from "@/components/logout-button";
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +35,6 @@ const navItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { handleLogout, isLoggingOut } = useLogout();
 
   return (
     <Sidebar collapsible="icon">
@@ -84,14 +83,20 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              tooltip="Logout"
-            >
-              <LogOut />
-              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
-            </SidebarMenuButton>
+            <LogoutConfirmDialog
+              trigger={({ isLoggingOut, Trigger }) => (
+                <SidebarMenuButton
+                  asChild
+                  disabled={isLoggingOut}
+                  tooltip="Logout"
+                >
+                  <Trigger type="button">
+                    <LogOut />
+                    <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                  </Trigger>
+                </SidebarMenuButton>
+              )}
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
