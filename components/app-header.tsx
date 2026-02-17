@@ -22,6 +22,10 @@ const ROUTE_META: Record<string, HeaderMeta> = {
 		title: "Habits",
 		subtitle: "Manage routines, weight, and micro-steps.",
 	},
+	"/progress": {
+		title: "Progress",
+		subtitle: "Review load, completion, and recovery patterns.",
+	},
 	"/settings": {
 		title: "Settings",
 		subtitle: "Appearance and app preferences.",
