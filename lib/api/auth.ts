@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getAuthCookie, verifyToken } from "@/lib/auth/jwt";
 import { errorResponse, type RouteResult } from "@/lib/api/http";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { type User, users } from "@/lib/db/schema";
 
 export async function requireAuthUserEmail(): Promise<RouteResult<string>> {
@@ -19,6 +19,7 @@ export async function requireAuthUserEmail(): Promise<RouteResult<string>> {
 }
 
 export async function requireDbUser(email: string): Promise<RouteResult<User>> {
+  const db = await getDb();
   const [user] = await db
     .select()
     .from(users)

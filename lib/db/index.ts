@@ -1,8 +1,8 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
 
-function initDbConnection() {
-  return drizzle(process.env.DB as unknown as D1Database, { schema });
+export function getDb() {
+  const { env } = getCloudflareContext<{ env: { DB: D1Database } }>();
+  return drizzle(env.DB, { schema });
 }
-
-export const db = initDbConnection();
