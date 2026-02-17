@@ -43,3 +43,8 @@ next-env.d.ts
 /app/generated/prisma
 
 /lib/prisma
+
+# wrangler
+.wrangler
+wrangler.toml*
+worker-configuration.d.ts
