@@ -134,7 +134,7 @@ export type ProgressHabitRow = {
 export type ProgressPlannedRow = {
 	id: string;
 	habit_id: number;
-	date: Date;
+	date: string;
 	planned_weight_cu: unknown;
 	context_tag: string | null;
 };
@@ -142,7 +142,7 @@ export type ProgressPlannedRow = {
 export type ProgressEntryRow = {
 	id: string;
 	habit_id: number;
-	date: Date;
+	date: string;
 	actual_weight_cu: unknown;
 	status: HabitEntryStatus;
 	note: string | null;

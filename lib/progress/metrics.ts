@@ -77,7 +77,7 @@ function clampRate(value: number) {
 	return Math.max(0, Math.min(100, round(value, 1)));
 }
 
-function dateKey(date: Date) {
+function dateKey(date: Date | string) {
 	return toIsoDate(date);
 }
 
@@ -147,7 +147,7 @@ function getPlannedByHabitDate(planned: ProgressPlannedRow[]) {
 function getNotes(entries: ProgressEntryRow[], limit = 3) {
 	return entries
 		.filter((entry) => Boolean(entry.note?.trim()))
-		.sort((a, b) => b.date.getTime() - a.date.getTime())
+		.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0))
 		.map((entry) => entry.note?.trim() ?? "")
 		.filter(Boolean)
 		.slice(0, limit);
@@ -510,7 +510,7 @@ function computeSlipRecovery(input: {
 	}
 
 	for (const [, list] of entriesByHabit) {
-		list.sort((a, b) => a.date.getTime() - b.date.getTime());
+		list.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 	}
 
 	const missedEvents = input.planned.filter((plannedItem) => {
@@ -529,13 +529,14 @@ function computeSlipRecovery(input: {
 	let heuristicRecovered = 0;
 	for (const missed of missedEvents) {
 		const list = entriesByHabit.get(missed.habit_id) ?? [];
-		const missDate = missed.date.getTime();
-		const recoveryWindowEnd = new Date(missed.date);
+		const missDateStr = dateKey(missed.date);
+		const recoveryWindowEnd = new Date(`${missDateStr}T00:00:00Z`);
 		recoveryWindowEnd.setUTCDate(recoveryWindowEnd.getUTCDate() + 3);
+		const recoveryEndStr = recoveryWindowEnd.toISOString().slice(0, 10);
 
 		const recovered = list.some((entry) => {
-			const entryTime = entry.date.getTime();
-			if (entryTime <= missDate || entryTime > recoveryWindowEnd.getTime()) {
+			const entryDateStr = dateKey(entry.date);
+			if (entryDateStr <= missDateStr || entryDateStr > recoveryEndStr) {
 				return false;
 			}
 

@@ -23,7 +23,8 @@ function formatDateParts({ year, month, day }: DateParts) {
 	return `${year}-${pad2(month)}-${pad2(day)}`;
 }
 
-export function formatDateUTC(date: Date) {
+export function formatDateUTC(date: Date | string) {
+	if (typeof date === "string") return date;
 	return date.toISOString().slice(0, 10);
 }
 

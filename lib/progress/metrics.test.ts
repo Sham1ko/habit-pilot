@@ -15,7 +15,7 @@ function plannedRow(
 	return {
 		id,
 		habit_id: habitId,
-		date: new Date(`${date}T00:00:00Z`),
+		date,
 		planned_weight_cu: plannedWeight.toString(),
 		context_tag: null,
 	};
@@ -31,7 +31,7 @@ function entryRow(
 	return {
 		id,
 		habit_id: habitId,
-		date: new Date(`${date}T00:00:00Z`),
+		date,
 		status,
 		actual_weight_cu: actualWeight.toString(),
 		note: null,

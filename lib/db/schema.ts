@@ -1,108 +1,99 @@
-import { relations } from "drizzle-orm";
-import {
-  boolean,
-  date,
-  integer,
-  numeric,
-  pgEnum,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
-
-// ── Enums ──────────────────────────────────────────────────────────────
-
-export const shareLinkKindEnum = pgEnum("ShareLinkKind", ["public", "ics"]);
-
-export const habitEntryStatusEnum = pgEnum("HabitEntryStatus", [
-  "done",
-  "skipped",
-  "micro_done",
-  "recovered",
-]);
+import { relations, sql } from "drizzle-orm";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // ── Tables ─────────────────────────────────────────────────────────────
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   name: text("name"),
   tz: text("tz"),
-  weekly_capacity_cu_default: numeric("weekly_capacity_cu_default"),
-  created_at: timestamp("created_at", { withTimezone: true, mode: "date" })
+  weekly_capacity_cu_default: text("weekly_capacity_cu_default"),
+  created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
 });
 
-export const habits = pgTable("habits", {
-  id: serial("id").primaryKey(),
-  user_id: integer("user_id")
+export const habits = sqliteTable("habits", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  user_id: integer("user_id", { mode: "number" })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  weight_cu: numeric("weight_cu").notNull(),
+  weight_cu: text("weight_cu").notNull(),
   freq_type: text("freq_type").notNull(),
-  freq_per_week: numeric("freq_per_week").notNull(),
-  has_micro: boolean("has_micro").notNull().default(false),
+  freq_per_week: text("freq_per_week").notNull(),
+  has_micro: integer("has_micro", { mode: "boolean" }).notNull().default(false),
   micro_title: text("micro_title"),
-  micro_weight_cu: numeric("micro_weight_cu").notNull(),
-  context_tags: text("context_tags").array().notNull().default([]),
-  is_active: boolean("is_active").notNull().default(true),
-  created_at: timestamp("created_at", { withTimezone: true, mode: "date" })
+  micro_weight_cu: text("micro_weight_cu").notNull(),
+  context_tags: text("context_tags", { mode: "json" })
     .notNull()
-    .defaultNow(),
+    .$type<string[]>()
+    .default([]),
+  is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  created_at: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
 });
 
-export const habitEntries = pgTable("habit_entries", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  habit_id: integer("habit_id")
+export const habitEntries = sqliteTable("habit_entries", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  habit_id: integer("habit_id", { mode: "number" })
     .notNull()
     .references(() => habits.id, { onDelete: "cascade" }),
-  date: date("date", { mode: "date" }).notNull(),
-  actual_weight_cu: numeric("actual_weight_cu").notNull(),
-  status: habitEntryStatusEnum("status").notNull(),
+  date: text("date").notNull(),
+  actual_weight_cu: text("actual_weight_cu").notNull(),
+  status: text("status", {
+    enum: ["done", "skipped", "micro_done", "recovered"],
+  }).notNull(),
   proof_url: text("proof_url"),
   note: text("note"),
-  created_at: timestamp("created_at", { withTimezone: true, mode: "date" })
+  created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
 });
 
-export const plannedOccurrences = pgTable("planned_occurrences", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  habit_id: integer("habit_id")
+export const plannedOccurrences = sqliteTable("planned_occurrences", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  habit_id: integer("habit_id", { mode: "number" })
     .notNull()
     .references(() => habits.id, { onDelete: "cascade" }),
-  date: date("date", { mode: "date" }).notNull(),
-  planned_weight_cu: numeric("planned_weight_cu").notNull(),
+  date: text("date").notNull(),
+  planned_weight_cu: text("planned_weight_cu").notNull(),
   context_tag: text("context_tag"),
 });
 
-export const capacityPlans = pgTable("capacity_plans", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  user_id: integer("user_id")
+export const capacityPlans = sqliteTable("capacity_plans", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  user_id: integer("user_id", { mode: "number" })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  week_start_date: date("week_start_date", { mode: "date" }).notNull(),
-  capacity_cu: numeric("capacity_cu").notNull(),
+  week_start_date: text("week_start_date").notNull(),
+  capacity_cu: text("capacity_cu").notNull(),
 });
 
-export const shareLinks = pgTable("share_links", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  user_id: integer("user_id")
+export const shareLinks = sqliteTable("share_links", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  user_id: integer("user_id", { mode: "number" })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
-  kind: shareLinkKindEnum("kind").notNull(),
-  is_active: boolean("is_active").notNull().default(true),
-  expires_at: timestamp("expires_at", { withTimezone: true, mode: "date" }),
-  created_at: timestamp("created_at", { withTimezone: true, mode: "date" })
+  kind: text("kind", { enum: ["public", "ics"] }).notNull(),
+  is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  expires_at: integer("expires_at", { mode: "timestamp" }),
+  created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
 });
 
 // ── Relations ──────────────────────────────────────────────────────────
