@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError } from "@/lib/api/http";
 import { getDateContext } from "@/lib/date";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   capacityPlans,
   habitEntries,
@@ -81,6 +81,7 @@ export async function GET(request: Request) {
     const previousEndStr = range.previousEnd;
     const historyStartStr = shiftIsoDate(range.end, -20);
 
+    const db = getDb();
     const habitsPromise = db
       .select({
         id: habits.id,

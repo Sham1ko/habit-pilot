@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 import { formatDateUTC, getDateContext } from "@/lib/date";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import {
   capacityPlans,
   habitEntries,
@@ -93,6 +93,7 @@ export async function GET() {
     const weekStartStr = formatDateUTC(weekStartDate);
     const weekEndStr = formatDateUTC(weekEndDate);
 
+    const db = getDb();
     const [capacityPlan] = await db
       .select()
       .from(capacityPlans)
@@ -224,6 +225,7 @@ export async function POST(request: Request) {
     const weekStartStr = formatDateUTC(weekStartDate);
     const weekEndStr = formatDateUTC(weekEndDate);
 
+    const db = getDb();
     const [occurrenceRow] = await db
       .select({
         id: plannedOccurrences.id,

@@ -2,20 +2,38 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { setAuthCookie, signToken } from "@/lib/auth/jwt";
 import { verifyPassword } from "@/lib/auth/password";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    if (!email || !password) {
+    if (typeof body !== "object" || body === null) {
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 },
       );
     }
 
+    const { email, password } = body as {
+      email?: unknown;
+      password?: unknown;
+    };
+
+    if (typeof email !== "string" || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 },
+      );
+    }
+
+    const db = getDb();
     const [user] = await db
       .select()
       .from(users)

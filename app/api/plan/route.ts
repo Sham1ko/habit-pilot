@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 import { formatDateUTC, getDateContext } from "@/lib/date";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { capacityPlans, habits, plannedOccurrences } from "@/lib/db/schema";
 import { toNumber } from "@/lib/number";
 
@@ -162,6 +162,7 @@ async function getPlannedTotal(
   weekStartStr: string,
   weekEndStr: string,
 ) {
+  const db = getDb();
   const [result] = await db
     .select({ total: sum(plannedOccurrences.planned_weight_cu) })
     .from(plannedOccurrences)
@@ -201,6 +202,7 @@ export async function GET(request: Request) {
       ? getWeekWindowFromStart(parseIsoDate(weekStartQuery))
       : getWeekWindowFromStart(dateContext.weekStartDate);
 
+    const db = getDb();
     const capacityPromise = db
       .select()
       .from(capacityPlans)
@@ -355,6 +357,7 @@ export async function POST(request: Request) {
     }
     const user = userResult.data;
 
+    const db = getDb();
     const [habit] = await db
       .select()
       .from(habits)
@@ -468,6 +471,7 @@ export async function PATCH(request: Request) {
           )
         : getWeekWindowFromStart(fallbackContext.weekStartDate);
 
+      const db = getDb();
       const [existingPlan] = await db
         .select()
         .from(capacityPlans)
@@ -527,6 +531,7 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
+    const db = getDb();
     const [occurrence] = await db
       .select({
         id: plannedOccurrences.id,
@@ -656,6 +661,7 @@ export async function DELETE(request: Request) {
     }
     const user = userResult.data;
 
+    const db = getDb();
     const [occurrence] = await db
       .select({
         id: plannedOccurrences.id,
