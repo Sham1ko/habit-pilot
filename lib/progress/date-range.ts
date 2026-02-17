@@ -14,7 +14,8 @@ function isValidIsoDate(value: string) {
 	return !Number.isNaN(utcDate(value).getTime());
 }
 
-export function toIsoDate(date: Date) {
+export function toIsoDate(date: Date | string) {
+	if (typeof date === "string") return date;
 	return date.toISOString().slice(0, 10);
 }
 

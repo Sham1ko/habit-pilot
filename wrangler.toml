@@ -1,0 +1,9 @@
+name = "habit-pilot"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "habit-pilot"
+database_id = "866e1cec-0ea5-4c30-b586-02e296c7ba92"
+migrations_dir = "drizzle"
