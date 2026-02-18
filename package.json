@@ -14,7 +14,8 @@
         "db:studio": "drizzle-kit studio",
         "cf:build": "opennextjs-cloudflare build",
         "cf:dev": "opennextjs-cloudflare preview",
-        "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+        "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+        "cf:deploy-only": "opennextjs-cloudflare deploy"
     },
     "dependencies": {
         "@opennextjs/cloudflare": "^1.16.5",
