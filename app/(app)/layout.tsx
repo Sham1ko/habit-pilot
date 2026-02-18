@@ -19,7 +19,7 @@ export default async function AppLayout({
 			<AppSidebar />
 			<SidebarInset>
 				<AppHeader />
-				<main className="flex flex-1 p-6">{children}</main>
+				<main className="flex flex-1 p-4 md:p-6">{children}</main>
 				<OnboardingModal />
 			</SidebarInset>
 		</SidebarProvider>
