@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const db = getDb();
+    const db = await getDb();
     // Check if user already exists
     const [existing] = await db
       .select({ id: users.id })

@@ -93,7 +93,7 @@ export async function GET() {
     const weekStartStr = formatDateUTC(weekStartDate);
     const weekEndStr = formatDateUTC(weekEndDate);
 
-    const db = getDb();
+    const db = await getDb();
     const [capacityPlan] = await db
       .select()
       .from(capacityPlans)
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
     const weekStartStr = formatDateUTC(weekStartDate);
     const weekEndStr = formatDateUTC(weekEndDate);
 
-    const db = getDb();
+    const db = await getDb();
     const [occurrenceRow] = await db
       .select({
         id: plannedOccurrences.id,

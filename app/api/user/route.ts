@@ -72,7 +72,7 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const [updatedUser] = await db
       .update(users)
       .set({

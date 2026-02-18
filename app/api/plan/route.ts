@@ -162,7 +162,7 @@ async function getPlannedTotal(
   weekStartStr: string,
   weekEndStr: string,
 ) {
-  const db = getDb();
+  const db = await getDb();
   const [result] = await db
     .select({ total: sum(plannedOccurrences.planned_weight_cu) })
     .from(plannedOccurrences)
@@ -202,7 +202,7 @@ export async function GET(request: Request) {
       ? getWeekWindowFromStart(parseIsoDate(weekStartQuery))
       : getWeekWindowFromStart(dateContext.weekStartDate);
 
-    const db = getDb();
+    const db = await getDb();
     const capacityPromise = db
       .select()
       .from(capacityPlans)
@@ -357,7 +357,7 @@ export async function POST(request: Request) {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const [habit] = await db
       .select()
       .from(habits)
@@ -471,7 +471,7 @@ export async function PATCH(request: Request) {
           )
         : getWeekWindowFromStart(fallbackContext.weekStartDate);
 
-      const db = getDb();
+      const db = await getDb();
       const [existingPlan] = await db
         .select()
         .from(capacityPlans)
@@ -531,7 +531,7 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const [occurrence] = await db
       .select({
         id: plannedOccurrences.id,
@@ -661,7 +661,7 @@ export async function DELETE(request: Request) {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const [occurrence] = await db
       .select({
         id: plannedOccurrences.id,
