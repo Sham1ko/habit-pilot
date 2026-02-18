@@ -47,4 +47,8 @@ next-env.d.ts
 
 # wrangler
 .wrangler
-wrangler.toml*
+
+#open-next
+.open-next
+open-next.config.mjs
+open-next.config.edje.mjs
