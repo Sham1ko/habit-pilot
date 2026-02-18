@@ -4,23 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-type HabitStatus = "planned" | "done" | "micro_done" | "skipped" | "recovered";
-
-type TodayItem = {
-	occurrence_id: string;
-	habit_id: number;
-	habit_title: string;
-	habit_weight_cu: number;
-	habit_has_micro: boolean;
-	habit_micro_title: string | null;
-	habit_micro_weight_cu: number;
-	planned_weight_cu: number;
-	context_tag: string | null;
-	status: HabitStatus;
-	actual_weight_cu: number | null;
-	entry_id: string | null;
-};
+import { TodayHabitItem } from "./_components/today-habit-item";
+import type { HabitStatus, TodayAction, TodayItem } from "./types";
 
 type TodayData = {
 	date: string;
@@ -40,6 +25,7 @@ type TodayResponse = {
 	items: Array<{
 		occurrence_id: string;
 		habit_id: number;
+		habit_emoji: string | null;
 		habit_title: string;
 		habit_weight_cu: string;
 		habit_has_micro: boolean;
@@ -56,7 +42,7 @@ type TodayResponse = {
 
 type ActionPayload = {
 	occurrenceId: string;
-	action: "done" | "micro_done" | "skipped";
+	action: TodayAction;
 };
 
 type ActionResponse = {
@@ -103,14 +89,6 @@ async function sendAction(payload: ActionPayload) {
 
 	return responseData;
 }
-
-const statusLabel: Record<HabitStatus, string> = {
-	planned: "Planned",
-	done: "Done",
-	micro_done: "Micro-done",
-	skipped: "Skipped",
-	recovered: "Recovered",
-};
 
 function toNumber(value: string | null | undefined) {
 	if (!value) {
@@ -355,7 +333,7 @@ export default function TodayPage() {
 
 	const handleAction = async (
 		occurrenceId: string,
-		action: ActionPayload["action"],
+		action: TodayAction,
 	) => {
 		if (!data) {
 			return;
@@ -527,86 +505,15 @@ export default function TodayPage() {
 						const isPending = pendingActions.some(
 							(action) => action.occurrenceId === item.occurrence_id,
 						);
-						const isCompleted = item.status !== "planned";
 
 						return (
-							<div
+							<TodayHabitItem
 								key={item.occurrence_id}
-								className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm"
-							>
-								<div className="flex flex-wrap items-start justify-between gap-3">
-									<div className="space-y-2">
-										<div className="flex flex-wrap items-center gap-2">
-											<h2 className="text-lg font-semibold">
-												{item.habit_title}
-											</h2>
-											<span
-												className={cn(
-													"rounded-full border px-2 py-0.5 text-xs font-medium",
-													item.status === "done" &&
-														"border-emerald-200 bg-emerald-50 text-emerald-700",
-													item.status === "micro_done" &&
-														"border-sky-200 bg-sky-50 text-sky-700",
-													item.status === "skipped" &&
-														"border-rose-200 bg-rose-50 text-rose-700",
-													item.status === "planned" &&
-														"border-zinc-200 bg-zinc-50 text-zinc-600",
-												)}
-											>
-												{statusLabel[item.status]}
-											</span>
-										</div>
-										<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-											<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-												{formatCu(item.planned_weight_cu)} CU
-											</span>
-											{item.context_tag ? (
-												<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-													{item.context_tag}
-												</span>
-											) : null}
-											{item.habit_has_micro ? (
-												<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-													Micro: {formatCu(item.habit_micro_weight_cu)} CU
-												</span>
-											) : null}
-										</div>
-									</div>
-									<div className="flex flex-wrap items-center gap-2">
-										<Button
-											type="button"
-											size="sm"
-											disabled={isPending || isCompleted}
-											onClick={() => handleAction(item.occurrence_id, "done")}
-										>
-											Done
-										</Button>
-										<Button
-											type="button"
-											size="sm"
-											variant="secondary"
-											disabled={isPending || isCompleted}
-											title="Mark micro-done"
-											onClick={() =>
-												handleAction(item.occurrence_id, "micro_done")
-											}
-										>
-											Micro-done
-										</Button>
-										<Button
-											type="button"
-											size="sm"
-											variant="outline"
-											disabled={isPending || isCompleted}
-											onClick={() =>
-												handleAction(item.occurrence_id, "skipped")
-											}
-										>
-											Skip
-										</Button>
-									</div>
-								</div>
-							</div>
+								item={item}
+								isPending={isPending}
+								onAction={handleAction}
+								formatCu={formatCu}
+							/>
 						);
 					})
 				)}
