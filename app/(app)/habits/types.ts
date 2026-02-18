@@ -1,5 +1,6 @@
 export type HabitListItem = {
 	id: number;
+	emoji: string | null;
 	title: string;
 	description: string | null;
 	weight_cu: string;
