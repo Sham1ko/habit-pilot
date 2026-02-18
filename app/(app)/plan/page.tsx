@@ -669,7 +669,7 @@ export default function PlanPage() {
 
     return (
         <>
-            <section className="flex flex-1 flex-col min-h-0 gap-4">
+            <section className="flex flex-col gap-4">
                 <header className="flex flex-wrap items-start justify-between gap-4">
                     <p className="max-w-xl text-sm text-muted-foreground">
                         Plan your week within capacity.
