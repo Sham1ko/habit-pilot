@@ -20,6 +20,7 @@ export const habits = sqliteTable("habits", {
   user_id: integer("user_id", { mode: "number" })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  emoji: text("emoji"),
   title: text("title").notNull(),
   description: text("description"),
   weight_cu: text("weight_cu").notNull(),
