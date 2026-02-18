@@ -115,6 +115,7 @@ export async function GET() {
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
         context_tag: plannedOccurrences.context_tag,
+        habit_emoji: habits.emoji,
         habit_title: habits.title,
         habit_weight_cu: habits.weight_cu,
         habit_has_micro: habits.has_micro,
@@ -164,6 +165,7 @@ export async function GET() {
         return {
           occurrence_id: occurrence.id,
           habit_id: occurrence.habit_id,
+          habit_emoji: occurrence.habit_emoji,
           habit_title: occurrence.habit_title,
           habit_weight_cu: occurrence.habit_weight_cu?.toString() ?? "0",
           habit_has_micro: occurrence.habit_has_micro,
