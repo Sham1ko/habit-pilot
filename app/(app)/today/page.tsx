@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TodayHabitItem } from "./_components/today-habit-item";
+import { TodayHeaderInfo } from "./_components/today-header-info";
 import type { HabitStatus, TodayAction, TodayItem } from "./types";
 
 type TodayData = {
@@ -127,15 +128,6 @@ function formatCu(value: number) {
 	return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
 }
 
-function formatDateLabel(dateString: string) {
-	const date = new Date(`${dateString}T00:00:00`);
-	return new Intl.DateTimeFormat("en-US", {
-		weekday: "long",
-		month: "long",
-		day: "numeric",
-	}).format(date);
-}
-
 function getContribution(item: TodayItem) {
 	if (item.status === "skipped") {
 		return 0;
@@ -153,27 +145,6 @@ function getMicroWeight(item: TodayItem) {
 	return Math.max(0.1, item.planned_weight_cu * 0.5);
 }
 
-function getSubtitle(items: TodayItem[]) {
-	if (items.length === 0) {
-		return "Nothing planned today. Enjoy the space or plan ahead.";
-	}
-
-	const allComplete = items.every(
-		(item) => item.status === "done" || item.status === "micro_done",
-	);
-
-	if (allComplete) {
-		return "Nice work. Everything planned for today is complete.";
-	}
-
-	const hasSkipped = items.some((item) => item.status === "skipped");
-	if (hasSkipped) {
-		return "A slip doesn’t end the day. Small steps still count.";
-	}
-
-	return "Focus on what matters today. Keep it simple and doable.";
-}
-
 export default function TodayPage() {
 	const [data, setData] = useState<TodayData | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
@@ -183,8 +154,6 @@ export default function TodayPage() {
 	const [isSyncing, setIsSyncing] = useState(false);
 	const [recovery, setRecovery] = useState<RecoverySuggestion | null>(null);
 	const isFlushingRef = useRef(false);
-
-	const subtitle = useMemo(() => (data ? getSubtitle(data.items) : ""), [data]);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -417,7 +386,6 @@ export default function TodayPage() {
 		}
 	};
 
-	const todayLabel = data ? formatDateLabel(data.date) : "Today";
 	const weeklyCapacity = data?.weekly_capacity_cu ?? null;
 	const usedCu = data?.used_cu ?? 0;
 	const capacityRatio =
@@ -435,12 +403,7 @@ export default function TodayPage() {
 	return (
 		<section className="space-y-4 w-full md:space-y-6">
 			<header className="flex flex-wrap items-start justify-between gap-4">
-				<div className="max-w-xl">
-					<p className="text-sm text-muted-foreground">{todayLabel}</p>
-					{subtitle ? (
-						<p className="text-sm text-muted-foreground">{subtitle}</p>
-					) : null}
-				</div>
+				<TodayHeaderInfo date={data?.date} items={data?.items ?? []} />
 
 				<div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
 					<div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
