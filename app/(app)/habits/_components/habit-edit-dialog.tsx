@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -32,6 +32,9 @@ type HabitFormState = {
 type HabitEditDialogProps = {
 	habit: HabitListItem;
 	onHabitUpdated?: (habit: HabitListItem) => void;
+	trigger?: ReactNode;
+	open?: boolean;
+	onOpenChange?: (nextOpen: boolean) => void;
 };
 
 function toStringValue(value: string | number | null | undefined) {
@@ -62,8 +65,20 @@ function getInitialState(habit: HabitListItem): HabitFormState {
 export function HabitEditDialog({
 	habit,
 	onHabitUpdated,
+	trigger,
+	open: controlledOpen,
+	onOpenChange,
 }: HabitEditDialogProps) {
-	const [open, setOpen] = useState(false);
+	const [internalOpen, setInternalOpen] = useState(false);
+	const isControlled = controlledOpen !== undefined;
+	const open = isControlled ? controlledOpen : internalOpen;
+
+	const setOpen = (nextOpen: boolean) => {
+		if (!isControlled) {
+			setInternalOpen(nextOpen);
+		}
+		onOpenChange?.(nextOpen);
+	};
 	const [hasMicro, setHasMicro] = useState(
 		habit.has_micro ||
 			Boolean(habit.micro_title) ||
@@ -163,11 +178,15 @@ export function HabitEditDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>
-				<Button type="button" variant="outline" size="sm">
-					Edit
-				</Button>
-			</DialogTrigger>
+			{trigger === undefined ? (
+				<DialogTrigger asChild>
+					<Button type="button" variant="outline" size="sm">
+						Edit
+					</Button>
+				</DialogTrigger>
+			) : trigger ? (
+				<DialogTrigger asChild>{trigger}</DialogTrigger>
+			) : null}
 			<DialogContent className="sm:max-w-[520px]">
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<DialogHeader>
