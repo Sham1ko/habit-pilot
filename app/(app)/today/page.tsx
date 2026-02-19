@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TodayHabitItem } from "./_components/today-habit-item";
@@ -150,7 +151,6 @@ export default function TodayPage() {
 	const [data, setData] = useState<TodayData | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [actionError, setActionError] = useState<string | null>(null);
 	const [recovery, setRecovery] = useState<RecoverySuggestion | null>(null);
 
 	useEffect(() => {
@@ -263,7 +263,6 @@ export default function TodayPage() {
 			return;
 		}
 
-		setActionError(null);
 		const snapshot = data;
 
 		const target = data.items.find(
@@ -317,7 +316,7 @@ export default function TodayPage() {
 		} catch (err) {
 			const message =
 				err instanceof Error ? err.message : "Failed to update habit.";
-			setActionError(message);
+			toast.error(message);
 			setData(snapshot);
 		}
 	};
@@ -335,12 +334,6 @@ export default function TodayPage() {
 					formatCu={formatCu}
 				/>
 			</header>
-
-			{actionError ? (
-				<div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-700">
-					{actionError}
-				</div>
-			) : null}
 
 			<div className="grid gap-4">
 				{isLoading ? (
