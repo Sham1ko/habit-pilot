@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TodayHabitItem } from "./_components/today-habit-item";
-import {
-	TodayHeaderInfo,
-	TodayHeaderInfoSkeleton,
-} from "./_components/today-header-info";
+import { TodayHeader } from "./_components/today-header-info";
 import type { HabitStatus, TodayAction, TodayItem } from "./types";
 
 type TodayData = {
@@ -153,10 +150,7 @@ export default function TodayPage() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [actionError, setActionError] = useState<string | null>(null);
-	const [pendingActions, setPendingActions] = useState<ActionPayload[]>([]);
-	const [isSyncing, setIsSyncing] = useState(false);
 	const [recovery, setRecovery] = useState<RecoverySuggestion | null>(null);
-	const isFlushingRef = useRef(false);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -232,49 +226,6 @@ export default function TodayPage() {
 		},
 		[],
 	);
-
-	const flushPendingActions = useCallback(async () => {
-		if (isFlushingRef.current || pendingActions.length === 0) {
-			return;
-		}
-
-		isFlushingRef.current = true;
-		setIsSyncing(true);
-		setActionError(null);
-
-		for (const action of pendingActions) {
-			try {
-				const response = await sendAction(action);
-				applyServerUpdate(action.occurrenceId, response);
-				setPendingActions((prev) =>
-					prev.filter(
-						(item) =>
-							!(
-								item.occurrenceId === action.occurrenceId &&
-								item.action === action.action
-							),
-					),
-				);
-			} catch (err) {
-				const message =
-					err instanceof Error ? err.message : "Failed to sync updates.";
-				setActionError(message);
-				break;
-			}
-		}
-
-		setIsSyncing(false);
-		isFlushingRef.current = false;
-	}, [applyServerUpdate, pendingActions]);
-
-	useEffect(() => {
-		const handleOnline = () => {
-			void flushPendingActions();
-		};
-
-		window.addEventListener("online", handleOnline);
-		return () => window.removeEventListener("online", handleOnline);
-	}, [flushPendingActions]);
 
 	const updateRecovery = (
 		item: TodayItem,
@@ -359,33 +310,14 @@ export default function TodayPage() {
 			setRecovery(null);
 		}
 
-		setPendingActions((prev) => [...prev, { occurrenceId, action }]);
-
 		try {
 			const response = await sendAction({ occurrenceId, action });
 			applyServerUpdate(occurrenceId, response);
-			setPendingActions((prev) =>
-				prev.filter(
-					(item) =>
-						!(item.occurrenceId === occurrenceId && item.action === action),
-				),
-			);
 		} catch (err) {
-			const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-			if (isOffline) {
-				setActionError("You’re offline. Updates will sync when you reconnect.");
-			} else {
-				const message =
-					err instanceof Error ? err.message : "Failed to update habit.";
-				setActionError(message);
-				setPendingActions((prev) =>
-					prev.filter(
-						(item) =>
-							!(item.occurrenceId === occurrenceId && item.action === action),
-					),
-				);
-				setData(snapshot);
-			}
+			const message =
+				err instanceof Error ? err.message : "Failed to update habit.";
+			setActionError(message);
+			setData(snapshot);
 		}
 	};
 
@@ -406,11 +338,7 @@ export default function TodayPage() {
 	return (
 		<section className="space-y-4 w-full md:space-y-6">
 			<header className="flex flex-wrap items-start justify-between gap-4">
-				{isLoading ? (
-					<TodayHeaderInfoSkeleton />
-				) : (
-					<TodayHeaderInfo date={data?.date} items={data?.items ?? []} />
-				)}
+				<TodayHeader isLoading={isLoading} date={data?.date} items={data?.items ?? []} />
 
 				<div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
 					<div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
@@ -443,14 +371,6 @@ export default function TodayPage() {
 				</div>
 			) : null}
 
-			{isSyncing || pendingActions.length > 0 ? (
-				<div className="rounded-lg border border-border bg-card p-3 text-xs text-muted-foreground">
-					{isSyncing
-						? "Syncing updates..."
-						: `${pendingActions.length} update${pendingActions.length === 1 ? "" : "s"} waiting to sync.`}
-				</div>
-			) : null}
-
 			<div className="grid gap-4">
 				{isLoading ? (
 					<div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
@@ -472,15 +392,11 @@ export default function TodayPage() {
 					</div>
 				) : (
 					data?.items.map((item) => {
-						const isPending = pendingActions.some(
-							(action) => action.occurrenceId === item.occurrence_id,
-						);
-
 						return (
 							<TodayHabitItem
 								key={item.occurrence_id}
 								item={item}
-								isPending={isPending}
+								isPending={false}
 								onAction={handleAction}
 								formatCu={formatCu}
 							/>
