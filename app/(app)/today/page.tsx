@@ -361,38 +361,40 @@ export default function TodayPage() {
 					usedCu={usedCu}
 					formatCu={formatCu}
 				/>
-			</header>
+			</header >
 
 			<div className="grid gap-4">
 				{renderHabitsContent()}
 			</div>
 
-			{recovery ? (
-				<section className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
-					<h3 className="text-lg font-semibold">Slip recovery</h3>
-					<p className="mt-2 text-sm text-muted-foreground">
-						Missing one habit is normal. A tiny step keeps the day on track.
-					</p>
-					<div className="mt-3 rounded-lg border border-border/70 bg-background p-3 text-sm">
-						<p className="font-medium">{recovery.microTitle}</p>
-						<p className="text-xs text-muted-foreground">
-							{recovery.contextTag ? `${recovery.contextTag} • ` : ""}
-							Suggested: {formatCu(recovery.suggestedWeight)} CU
-							{recovery.remainingCapacity !== null
-								? ` • ${formatCu(recovery.remainingCapacity)} CU remaining`
-								: ""}
+			{
+				recovery ? (
+					<section className="rounded-xl border border-border bg-card p-5 text-card-foreground shadow-sm">
+						<h3 className="text-lg font-semibold">Slip recovery</h3>
+						<p className="mt-2 text-sm text-muted-foreground">
+							Missing one habit is normal. A tiny step keeps the day on track.
 						</p>
-					</div>
-					<Button
-						type="button"
-						size="sm"
-						className="mt-4"
-						onClick={() => handleAction(recovery.occurrenceId, "micro_done")}
-					>
-						Mark micro-done
-					</Button>
-				</section>
-			) : null}
-		</section>
+						<div className="mt-3 rounded-lg border border-border/70 bg-background p-3 text-sm">
+							<p className="font-medium">{recovery.microTitle}</p>
+							<p className="text-xs text-muted-foreground">
+								{recovery.contextTag ? `${recovery.contextTag} • ` : ""}
+								Suggested: {formatCu(recovery.suggestedWeight)} CU
+								{recovery.remainingCapacity !== null
+									? ` • ${formatCu(recovery.remainingCapacity)} CU remaining`
+									: ""}
+							</p>
+						</div>
+						<Button
+							type="button"
+							size="sm"
+							className="mt-4"
+							onClick={() => handleAction(recovery.occurrenceId, "micro_done")}
+						>
+							Mark micro-done
+						</Button>
+					</section>
+				) : null
+			}
+		</section >
 	);
 }
