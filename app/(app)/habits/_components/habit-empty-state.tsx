@@ -15,7 +15,7 @@ import {
 	HabitCreateDialog,
 	type HabitCreateInitialValues,
 } from "./habit-create-dialog";
-import type { HabitListItem } from "./types";
+import type { HabitListItem } from "../types";
 
 type HabitsEmptyStateProps = {
 	onHabitCreated: (habit: HabitListItem) => void;
