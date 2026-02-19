@@ -30,43 +30,47 @@ export function TodayHabitItem({
 
 	return (
 		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-			<div className="flex flex-wrap items-start justify-between gap-3">
-				<div className="space-y-2">
-					<div className="flex flex-wrap items-center gap-2">
-						<h2 className="text-lg font-semibold">
-							{item.habit_emoji ? `${item.habit_emoji} ` : ""}
-							{item.habit_title}
-						</h2>
-						<span
-							className={cn(
-								"rounded-full border px-2 py-0.5 text-xs font-medium",
-								item.status === "done" &&
-									"border-emerald-200 bg-emerald-50 text-emerald-700",
-								item.status === "micro_done" &&
-									"border-sky-200 bg-sky-50 text-sky-700",
-								item.status === "skipped" &&
-									"border-rose-200 bg-rose-50 text-rose-700",
-								item.status === "planned" &&
-									"border-zinc-200 bg-zinc-50 text-zinc-600",
-							)}
-						>
-							{statusLabel[item.status]}
-						</span>
+			<div className="flex flex-wrap items-center justify-between">
+				<div className="flex items-center gap-4">
+					<div className="border p-4 rounded-lg bg-muted text-xl">
+						{item.habit_emoji ? `${item.habit_emoji} ` : ""}
 					</div>
-					<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-						<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-							{formatCu(item.planned_weight_cu)} CU
-						</span>
-						{item.context_tag ? (
-							<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-								{item.context_tag}
+					<div className="space-y-2">
+						<div className="flex flex-wrap items-center gap-2">
+							<h2 className="text-lg font-semibold">
+								{item.habit_title}
+							</h2>
+							<span
+								className={cn(
+									"rounded-full border px-2 py-0.5 text-xs font-medium",
+									item.status === "done" &&
+									"border-emerald-200 bg-emerald-50 text-emerald-700",
+									item.status === "micro_done" &&
+									"border-sky-200 bg-sky-50 text-sky-700",
+									item.status === "skipped" &&
+									"border-rose-200 bg-rose-50 text-rose-700",
+									item.status === "planned" &&
+									"border-zinc-200 bg-zinc-50 text-zinc-600",
+								)}
+							>
+								{statusLabel[item.status]}
 							</span>
-						) : null}
-						{item.habit_has_micro ? (
+						</div>
+						<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 							<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-								Micro: {formatCu(item.habit_micro_weight_cu)} CU
+								{formatCu(item.planned_weight_cu)} CU
 							</span>
-						) : null}
+							{item.context_tag ? (
+								<span className="rounded-full border border-border/70 bg-background px-2 py-1">
+									{item.context_tag}
+								</span>
+							) : null}
+							{item.habit_has_micro ? (
+								<span className="rounded-full border border-border/70 bg-background px-2 py-1">
+									Micro: {formatCu(item.habit_micro_weight_cu)} CU
+								</span>
+							) : null}
+						</div>
 					</div>
 				</div>
 				<div className="flex flex-wrap items-center gap-2">

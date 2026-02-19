@@ -322,6 +322,28 @@ export default function TodayPage() {
 
 	const weeklyCapacity = data?.weekly_capacity_cu ?? null;
 	const usedCu = data?.used_cu ?? 0;
+	const renderHabitsContent = () => {
+		if (isLoading) {
+			return Array.from({ length: 3 }, (_, index) => (
+				<TodayHabitItemSkeleton key={`today-habit-skeleton-${index}`} />
+			));
+		}
+
+
+		if (!data || data.items.length === 0) {
+			return <TodayEmptyState />;
+		}
+
+		return data.items.map((item) => (
+			<TodayHabitItem
+				key={item.occurrence_id}
+				item={item}
+				isPending={false}
+				onAction={handleAction}
+				formatCu={formatCu}
+			/>
+		));
+	};
 
 	return (
 		<section className="space-y-4 w-full md:space-y-6">
@@ -335,29 +357,12 @@ export default function TodayPage() {
 			</header>
 
 			<div className="grid gap-4">
-				{isLoading ? (
-					Array.from({ length: 3 }).map((_, index) => (
-						<TodayHabitItemSkeleton key={`today-habit-skeleton-${index}`} />
-					))
-				) : error ? (
+				{error ? (
 					<div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
 						{error}
 					</div>
-				) : data && data.items.length === 0 ? (
-					<TodayEmptyState />
-				) : (
-					data?.items.map((item) => {
-						return (
-							<TodayHabitItem
-								key={item.occurrence_id}
-								item={item}
-								isPending={false}
-								onAction={handleAction}
-								formatCu={formatCu}
-							/>
-						);
-					})
-				)}
+				) : null}
+				{renderHabitsContent()}
 			</div>
 
 			{recovery ? (
