@@ -5,7 +5,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TodayHabitItem } from "./_components/today-habit-item";
-import { TodayHeaderInfo } from "./_components/today-header-info";
+import {
+	TodayHeaderInfo,
+	TodayHeaderInfoSkeleton,
+} from "./_components/today-header-info";
 import type { HabitStatus, TodayAction, TodayItem } from "./types";
 
 type TodayData = {
@@ -403,7 +406,11 @@ export default function TodayPage() {
 	return (
 		<section className="space-y-4 w-full md:space-y-6">
 			<header className="flex flex-wrap items-start justify-between gap-4">
-				<TodayHeaderInfo date={data?.date} items={data?.items ?? []} />
+				{isLoading ? (
+					<TodayHeaderInfoSkeleton />
+				) : (
+					<TodayHeaderInfo date={data?.date} items={data?.items ?? []} />
+				)}
 
 				<div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
 					<div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
