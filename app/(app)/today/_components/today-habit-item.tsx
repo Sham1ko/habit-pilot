@@ -30,7 +30,7 @@ export function TodayHabitItem({
 
 	return (
 		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-			<div className="flex flex-wrap items-center justify-between">
+			<div className="flex flex-wrap items-center justify-between gap-4">
 				<div className="flex items-center gap-4">
 					<div className="border p-4 rounded-lg bg-muted text-xl">
 						{item.habit_emoji ? `${item.habit_emoji} ` : ""}
@@ -112,11 +112,10 @@ export function TodayHabitItemSkeleton() {
 		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="flex items-center gap-4">
-					<Skeleton className="h-15 w-15 rounded-lg" />
+					<Skeleton className="border h-15 w-15 rounded-lg" />
 					<div className="space-y-2">
 						<div className="flex flex-wrap items-center gap-2">
 							<Skeleton className="h-7 w-52" />
-							<Skeleton className="h-5 w-20 rounded-full" />
 						</div>
 						<div className="flex flex-wrap items-center gap-2">
 							<Skeleton className="h-6 w-16 rounded-full" />
