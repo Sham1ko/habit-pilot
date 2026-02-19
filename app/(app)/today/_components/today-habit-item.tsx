@@ -110,22 +110,24 @@ export function TodayHabitItem({
 export function TodayHabitItemSkeleton() {
 	return (
 		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-			<div className="flex flex-wrap items-start justify-between gap-3">
-				<div className="space-y-2">
-					<div className="flex flex-wrap items-center gap-2">
-						<Skeleton className="h-7 w-56" />
-						<Skeleton className="h-6 w-20 rounded-full" />
-					</div>
-					<div className="flex flex-wrap items-center gap-2">
-						<Skeleton className="h-6 w-16 rounded-full" />
-						<Skeleton className="h-6 w-20 rounded-full" />
-						<Skeleton className="h-6 w-24 rounded-full" />
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="flex items-center gap-4">
+					<Skeleton className="h-15 w-15 rounded-lg" />
+					<div className="space-y-2">
+						<div className="flex flex-wrap items-center gap-2">
+							<Skeleton className="h-7 w-52" />
+							<Skeleton className="h-5 w-20 rounded-full" />
+						</div>
+						<div className="flex flex-wrap items-center gap-2">
+							<Skeleton className="h-6 w-16 rounded-full" />
+							<Skeleton className="h-6 w-24 rounded-full" />
+						</div>
 					</div>
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
-					<Skeleton className="h-9 w-16 rounded-md" />
+					<Skeleton className="h-9 w-14 rounded-md" />
 					<Skeleton className="h-9 w-24 rounded-md" />
-					<Skeleton className="h-9 w-16 rounded-md" />
+					<Skeleton className="h-9 w-14 rounded-md" />
 				</div>
 			</div>
 		</div>
