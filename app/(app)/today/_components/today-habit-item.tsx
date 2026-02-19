@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { TodayAction, TodayItem } from "../types";
 
@@ -96,6 +97,31 @@ export function TodayHabitItem({
 					>
 						Skip
 					</Button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+export function TodayHabitItemSkeleton() {
+	return (
+		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+			<div className="flex flex-wrap items-start justify-between gap-3">
+				<div className="space-y-2">
+					<div className="flex flex-wrap items-center gap-2">
+						<Skeleton className="h-7 w-56" />
+						<Skeleton className="h-6 w-20 rounded-full" />
+					</div>
+					<div className="flex flex-wrap items-center gap-2">
+						<Skeleton className="h-6 w-16 rounded-full" />
+						<Skeleton className="h-6 w-20 rounded-full" />
+						<Skeleton className="h-6 w-24 rounded-full" />
+					</div>
+				</div>
+				<div className="flex flex-wrap items-center gap-2">
+					<Skeleton className="h-9 w-16 rounded-md" />
+					<Skeleton className="h-9 w-24 rounded-md" />
+					<Skeleton className="h-9 w-16 rounded-md" />
 				</div>
 			</div>
 		</div>
