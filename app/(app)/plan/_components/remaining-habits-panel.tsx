@@ -1,6 +1,7 @@
 "use client";
 
 import { CornerDownRight, Plus } from "lucide-react";
+import { useMemo } from "react";
 import { CuBadge } from "@/components/shared/cu-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,14 @@ export function RemainingHabitsPanel({
 	onApplyMoveSuggestion,
 	onOpenSetCapacity,
 }: RemainingHabitsPanelProps) {
+	const sortedRemainingHabits = useMemo(
+		() =>
+			[...remainingHabits].sort((a, b) =>
+				a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+			),
+		[remainingHabits],
+	);
+
 	return (
 		<aside className="space-y-4">
 			<section className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
@@ -69,7 +78,7 @@ export function RemainingHabitsPanel({
 							All weekly frequencies are distributed.
 						</div>
 					) : (
-						remainingHabits.map((habit) => {
+						sortedRemainingHabits.map((habit) => {
 							const availableDays = days.filter(
 								(day) =>
 									!day.occurrences.some((item) => item.habit_id === habit.id),

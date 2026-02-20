@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { formatCu, formatMonthDay, formatWeekday } from "../_lib/plan-utils";
 import type { PlanDay } from "../_lib/types";
 import { PlannedItemCard } from "./planned-item-card";
@@ -27,6 +28,15 @@ export function DayColumn({
 	const isToday = day.date === todayDate;
 	const moveDayOptions = dayOptions.filter(
 		(option) => option.date !== day.date,
+	);
+	const sortedOccurrences = useMemo(
+		() =>
+			[...day.occurrences].sort((a, b) =>
+				a.habit_title.localeCompare(b.habit_title, undefined, {
+					sensitivity: "base",
+				}),
+			),
+		[day.occurrences],
 	);
 
 	return (
@@ -62,7 +72,7 @@ export function DayColumn({
 						</p>
 					</div>
 				) : (
-					day.occurrences.map((occurrence) => (
+					sortedOccurrences.map((occurrence) => (
 						<PlannedItemCard
 							key={occurrence.id}
 							occurrence={occurrence}
