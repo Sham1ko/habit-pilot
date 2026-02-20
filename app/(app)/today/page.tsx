@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { TodayEmptyState } from "./_components/today-empty-state";
-import { TodayHabitItem } from "./_components/today-habit-item";
+import { TodayHabitItem, TodayHabitItemSkeleton } from "./_components/today-habit-item";
 import { TodayHeader } from "./_components/today-header-info";
 import { WeeklyCapacityCard } from "./_components/weekly-capacity-card";
 import type { HabitStatus, TodayAction, TodayItem } from "./types";
@@ -336,9 +336,9 @@ export default function TodayPage() {
 
 			<div className="grid gap-4">
 				{isLoading ? (
-					<div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-						Loading today’s habits...
-					</div>
+					Array.from({ length: 3 }).map((_, index) => (
+						<TodayHabitItemSkeleton key={`today-habit-skeleton-${index}`} />
+					))
 				) : error ? (
 					<div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
 						{error}
