@@ -77,7 +77,7 @@ export function HabitCard({
 						setIsOpen((prev) => !prev);
 					}
 				}}
-				className="rounded-xl border border-border bg-card px-4 py-4 text-card-foreground cursor-pointer transition-colors hover:border-border/80 hover:bg-muted/30"
+				className="rounded-xl border border-border bg-card px-4 py-4 text-card-foreground cursor-pointer"
 			>
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<div className="flex items-center gap-4">
@@ -109,7 +109,6 @@ export function HabitCard({
 						>
 							<span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1 text-sm font-medium">
 								{cuPerWeek} CU/wk
-								<Info className="size-3.5 text-muted-foreground" />
 							</span>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -117,7 +116,7 @@ export function HabitCard({
 										type="button"
 										variant="ghost"
 										size="icon"
-										className="h-9 w-9 rounded-md"
+										className="h-9 w-9 rounded-md border border-border/70 text-muted-foreground hover:bg-muted/60"
 										aria-label="More actions"
 										disabled={isDeleting}
 									>
@@ -145,19 +144,22 @@ export function HabitCard({
 								trigger={false}
 							/>
 						</div>
-						<ChevronDown
-							aria-hidden
-							className={`size-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
-						/>
+						<span
+							className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60"
+						>
+							<ChevronDown
+								aria-hidden
+								className={`size-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+							/>
+						</span>
 					</div>
 				</div>
 
 				<div
-					className={`grid overflow-hidden transition-all duration-200 ease-out ${
-						isOpen
-							? "mt-4 grid-rows-[1fr] border-t border-border/70 pt-4 opacity-100"
-							: "mt-0 grid-rows-[0fr] border-t-0 pt-0 opacity-0"
-					}`}
+					className={`grid overflow-hidden transition-all duration-200 ease-out ${isOpen
+						? "mt-4 grid-rows-[1fr] border-t border-border/70 pt-4 opacity-100"
+						: "mt-0 grid-rows-[0fr] border-t-0 pt-0 opacity-0"
+						}`}
 				>
 					<div className="min-h-0 grid gap-3 text-sm sm:grid-cols-2">
 						<div className="space-y-1">
