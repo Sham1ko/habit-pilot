@@ -31,7 +31,6 @@ import {
     usePlanActions,
 } from "./_hooks/use-plan-actions";
 import {
-    buildWeekPlanIcs,
     formatCu,
     formatDayLabel,
     getWeekStartDate,
@@ -561,26 +560,6 @@ export default function PlanPage() {
         });
     }, [addOccurrence, data, remainingHabits]);
 
-    const handleExportIcs = useCallback(() => {
-        if (!data) {
-            return;
-        }
-
-        const icsContent = buildWeekPlanIcs(data);
-        const blob = new Blob([icsContent], {
-            type: "text/calendar;charset=utf-8",
-        });
-
-        const objectUrl = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = objectUrl;
-        anchor.download = `habit-pilot-plan-${data.week_start_date}.ics`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(objectUrl);
-    }, [data]);
-
     const changeWeek = useCallback(
         async (weekStartDate: string) => {
             if (!data || weekStartDate === data.week_start_date) {
@@ -745,13 +724,6 @@ export default function PlanPage() {
                                 disabled={remainingHabits.length === 0}
                             >
                                 Auto-distribute
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={handleExportIcs}
-                            >
-                                Export .ics
                             </Button>
                         </div>
                     </div>
