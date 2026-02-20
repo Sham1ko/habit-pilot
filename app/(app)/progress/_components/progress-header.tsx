@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHelp } from "lucide-react";
+import { CalendarDays, CircleHelp } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +55,8 @@ export function ProgressHeader({
     onCustomEndChange,
     onApplyCustomRange,
 }: ProgressHeaderProps) {
+    const rangeControlWidthClass = "w-full sm:w-42.5";
+
     const rangeButtonLabel = useMemo(() => {
         if (preset === "custom" && customStart && customEnd) {
             return `${customStart} → ${customEnd}`;
@@ -93,8 +95,9 @@ export function ProgressHeader({
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="min-w-37.5"
+                                className={rangeControlWidthClass}
                             >
+                                <CalendarDays className="size-4" />
                                 {rangeButtonLabel}
                             </Button>
                         </DropdownMenuTrigger>
@@ -166,6 +169,7 @@ export function ProgressHeader({
                         size="sm"
                         onClick={onApplyCustomRange}
                         disabled={!customStart || !customEnd}
+                        className={rangeControlWidthClass}
                     >
                         Apply
                     </Button>
