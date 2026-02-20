@@ -214,7 +214,7 @@ export default function PlanPage() {
                 if (!response.ok || !responseData) {
                     throw new Error(
                         responseData?.error ??
-                            "Failed to save added occurrence.",
+                        "Failed to save added occurrence.",
                     );
                 }
 
@@ -286,7 +286,7 @@ export default function PlanPage() {
                 if (!response.ok || !responseData) {
                     throw new Error(
                         responseData?.error ??
-                            "Failed to move planned occurrence.",
+                        "Failed to move planned occurrence.",
                     );
                 }
 
@@ -336,7 +336,7 @@ export default function PlanPage() {
                 if (!response.ok || !responseData) {
                     throw new Error(
                         responseData?.error ??
-                            "Failed to convert to micro-step.",
+                        "Failed to convert to micro-step.",
                     );
                 }
 
@@ -669,7 +669,7 @@ export default function PlanPage() {
 
     return (
         <>
-            <section className="flex flex-col gap-4">
+            <section className="flex flex-col gap-4 w-full">
                 <header className="flex flex-wrap items-start justify-between gap-4">
                     <p className="max-w-xl text-sm text-muted-foreground">
                         Plan your week within capacity.
@@ -762,7 +762,7 @@ export default function PlanPage() {
                 ) : (
                     <div className="grid items-stretch gap-4 rounded-2xl border border-border/80 bg-muted/40 p-3 flex-1 min-h-0 xl:grid-cols-[minmax(0,1fr)_340px]">
                         <div className="overflow-x-auto pb-1 xl:h-full">
-                            <div className="grid min-w-280 grid-cols-7 items-stretch gap-3 xl:h-full">
+                            <div className="grid min-w-490 md:min-w-280 grid-cols-7 items-stretch gap-3 xl:h-full">
                                 {data.days.map((day) => (
                                     <DayColumn
                                         key={day.date}
