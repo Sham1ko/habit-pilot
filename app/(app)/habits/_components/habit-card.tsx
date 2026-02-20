@@ -63,23 +63,28 @@ export function HabitCard({
 	return (
 		<div className="rounded-xl border border-border bg-card px-4 py-4 text-card-foreground shadow-sm">
 			<div className="flex flex-wrap items-start justify-between gap-4">
-				<div className="min-w-0 space-y-1">
-					<h2 className="truncate text-lg font-semibold">
+				<div className="flex items-center gap-4">
+					<div className="border p-4 rounded-lg bg-muted text-xl">
 						{habit.emoji ? `${habit.emoji} ` : ""}
-						{habit.title}
-					</h2>
-					<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-						{habit.description ? (
-							<span className="truncate">{habit.description}</span>
-						) : null}
-						{habit.description ? <span aria-hidden>•</span> : null}
-						<span>{formatSchedule(habit)}</span>
-						{habit.has_micro ? (
-							<span className="flex gap-1 items-center rounded-full border border-border/70 bg-background px-2 py-0.5 text-xs">
-								<CornerDownRight className="size-3" />
-								Micro-step
-							</span>
-						) : null}
+					</div>
+					<div>
+						<h2 className="truncate text-lg font-semibold">
+							{habit.title}
+						</h2>
+
+						<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+							{habit.description ? (
+								<span className="truncate">{habit.description}</span>
+							) : null}
+							{habit.description ? <span aria-hidden>•</span> : null}
+							<span>{formatSchedule(habit)}</span>
+							{habit.has_micro ? (
+								<span className="flex gap-1 items-center rounded-full border border-border/70 bg-background px-2 py-0.5 text-xs">
+									<CornerDownRight className="size-3" />
+									Micro-step
+								</span>
+							) : null}
+						</div>
 					</div>
 				</div>
 
