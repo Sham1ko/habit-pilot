@@ -6,6 +6,10 @@ type TodayHeaderInfoProps = {
 	items?: TodayItem[];
 };
 
+type TodayHeaderProps = TodayHeaderInfoProps & {
+	isLoading?: boolean;
+};
+
 type DayTone = "empty" | "complete" | "recovery" | "focus";
 
 const DAY_TONE_CONTENT: Record<DayTone, { subtitle: string; emoji: string }> = {
@@ -96,4 +100,12 @@ export function TodayHeaderInfoSkeleton() {
 			<Skeleton className="h-5 w-82 max-w-full" />
 		</div>
 	);
+}
+
+export function TodayHeader({ isLoading = false, date, items }: TodayHeaderProps) {
+	if (isLoading) {
+		return <TodayHeaderInfoSkeleton />;
+	}
+
+	return <TodayHeaderInfo date={date} items={items} />;
 }
