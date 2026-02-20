@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { HabitCard } from "./_components/habit-card";
 import { HabitCreateDialog } from "./_components/habit-create-dialog";
 import { HabitsEmptyState } from "./_components/habit-empty-state";
+import { HabitsPageSkeleton } from "./_components/habits-page-skeleton";
 import type { HabitListItem } from "./types";
 
 export default function HabitsPage() {
@@ -118,6 +119,10 @@ export default function HabitsPage() {
 
   const hasItems = habits.length > 0;
 
+  if (isLoading) {
+    return <HabitsPageSkeleton />;
+  }
+
   return (
     <section className="space-y-6 w-full">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -134,11 +139,7 @@ export default function HabitsPage() {
       </header>
 
       <div className="grid gap-4">
-        {isLoading ? (
-          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-            Loading habits...
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
             {error}
           </div>
