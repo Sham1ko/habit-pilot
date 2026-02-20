@@ -433,7 +433,7 @@ export default function TodayPage() {
 	);
 
 	return (
-		<section className="space-y-6">
+		<section className="space-y-4 w-full md:space-y-6">
 			<header className="flex flex-wrap items-start justify-between gap-4">
 				<div className="max-w-xl">
 					<p className="text-sm text-muted-foreground">{todayLabel}</p>
