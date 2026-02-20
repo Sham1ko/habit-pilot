@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = getDb();
+    const db = await getDb();
     const [user] = await db
       .select()
       .from(users)

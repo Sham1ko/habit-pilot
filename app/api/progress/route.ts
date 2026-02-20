@@ -81,7 +81,7 @@ export async function GET(request: Request) {
     const previousEndStr = range.previousEnd;
     const historyStartStr = shiftIsoDate(range.end, -20);
 
-    const db = getDb();
+    const db = await getDb();
     const habitsPromise = db
       .select({
         id: habits.id,

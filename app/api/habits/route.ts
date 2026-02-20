@@ -158,7 +158,7 @@ export async function POST(request: Request) {
     const microTitle = micro_title ?? null;
     const hasMicro = computeHasMicro(microTitle, micro_weight_cu);
 
-    const db = getDb();
+    const db = await getDb();
     const [createdHabit] = await db
       .insert(habits)
       .values({
@@ -200,7 +200,7 @@ export async function GET() {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const allHabits = await db
       .select()
       .from(habits)
@@ -237,7 +237,7 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const [habit] = await db
       .select()
       .from(habits)
@@ -331,7 +331,7 @@ export async function DELETE(request: Request) {
     }
     const user = userResult.data;
 
-    const db = getDb();
+    const db = await getDb();
     const [habit] = await db
       .select({ id: habits.id })
       .from(habits)
