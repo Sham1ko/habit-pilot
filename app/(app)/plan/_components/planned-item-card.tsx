@@ -6,6 +6,7 @@ import {
 	MoreHorizontal,
 	Trash2,
 } from "lucide-react";
+import { CuBadge } from "@/components/shared/cu-badge";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -57,9 +58,10 @@ export function PlannedItemCard({
 						{occurrence.habit_title}
 					</p>
 					<div className="flex flex-wrap items-center gap-1.5 text-xs">
-						<span className="rounded-full border border-border/70 bg-card px-2 py-0.5 text-muted-foreground">
-							{formatCu(occurrence.planned_weight_cu)} CU
-						</span>
+						<CuBadge
+							value={formatCu(occurrence.planned_weight_cu)}
+							className="border-blue-400/45 bg-blue-50/45 text-blue-500/85"
+						/>
 						{isMicro ? (
 							<span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-sky-600 dark:text-sky-300">
 								Micro-step

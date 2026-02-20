@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { CuBadge } from "@/components/shared/cu-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { TodayAction, TodayItem } from "../types";
@@ -57,9 +58,7 @@ export function TodayHabitItem({
 							</span>
 						</div>
 						<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-							<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-								{formatCu(item.planned_weight_cu)} CU
-							</span>
+							<CuBadge value={formatCu(item.planned_weight_cu)} />
 							{item.context_tag ? (
 								<span className="rounded-full border border-border/70 bg-background px-2 py-1">
 									{item.context_tag}

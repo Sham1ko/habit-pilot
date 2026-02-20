@@ -1,6 +1,7 @@
 "use client";
 
 import { CornerDownRight, Plus } from "lucide-react";
+import { CuBadge } from "@/components/shared/cu-badge";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -88,9 +89,10 @@ export function RemainingHabitsPanel({
 												Remaining {habit.remaining}
 											</p>
 										</div>
-										<span className="rounded-full border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
-											{formatCu(habit.weight_cu)} CU
-										</span>
+										<CuBadge
+											value={formatCu(habit.weight_cu)}
+											className="border-blue-400/45 bg-blue-50/45 text-blue-500/85"
+										/>
 									</div>
 
 									<div className="mt-2 flex items-center justify-between gap-2">

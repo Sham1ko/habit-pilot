@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, CornerDownRight, Dumbbell, Info, MoreHorizontal } from "lucide-react";
+import { ChevronDown, CornerDownRight, MoreHorizontal } from "lucide-react";
+import { CuBadge } from "@/components/shared/cu-badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible } from "@/components/ui/collapsible";
 import {
@@ -71,10 +72,7 @@ export function HabitCard({
 							</h2>
 
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">
-								<span className="flex gap-1 text-blue-500 rounded-full border border-blue-500 bg-blue-50 text-xs font-medium px-2 py-0.5">
-									<Dumbbell strokeWidth={2} className="size-4" />
-									{habit.weight_cu} CU
-								</span>
+								<CuBadge value={habit.weight_cu} />
 								<Separator orientation="vertical" className="mx-1" />
 								<span>{formatSchedule(habit)}</span>
 								{habit.has_micro ? (<>
