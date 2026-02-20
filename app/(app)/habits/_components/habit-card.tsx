@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, CornerDownRight, Info, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-	Collapsible,
-	CollapsibleContent,
-} from "@/components/ui/collapsible";
+import { Collapsible } from "@/components/ui/collapsible";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -145,8 +142,14 @@ export function HabitCard({
 					</div>
 				</div>
 
-				<CollapsibleContent className="mt-4 border-t border-border/70 pt-4">
-					<div className="grid gap-3 text-sm sm:grid-cols-2">
+				<div
+					className={`grid overflow-hidden transition-all duration-200 ease-out ${
+						isOpen
+							? "mt-4 grid-rows-[1fr] border-t border-border/70 pt-4 opacity-100"
+							: "mt-0 grid-rows-[0fr] border-t-0 pt-0 opacity-0"
+					}`}
+				>
+					<div className="min-h-0 grid gap-3 text-sm sm:grid-cols-2">
 						<div className="space-y-1">
 							<p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 								Description
@@ -178,7 +181,7 @@ export function HabitCard({
 							</p>
 						</div>
 					</div>
-				</CollapsibleContent>
+				</div>
 			</div>
 		</Collapsible>
 	);
