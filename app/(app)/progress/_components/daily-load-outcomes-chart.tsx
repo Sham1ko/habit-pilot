@@ -89,7 +89,10 @@ export function DailyLoadOutcomesChart({
 							allowDecimals={false}
 						/>
 						<Tooltip
-							cursor={{ fill: "hsl(var(--muted) / 0.18)" }}
+							cursor={{
+								fill: "hsl(var(--muted))",
+								fillOpacity: 0.18,
+							}}
 							content={<ChartTooltip />}
 						/>
 						<Legend
