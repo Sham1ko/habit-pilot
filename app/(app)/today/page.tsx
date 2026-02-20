@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { TodayEmptyState } from "./_components/today-empty-state";
 import { TodayHabitItem } from "./_components/today-habit-item";
 import { TodayHeader } from "./_components/today-header-info";
 import { WeeklyCapacityCard } from "./_components/weekly-capacity-card";
@@ -345,15 +344,7 @@ export default function TodayPage() {
 						{error}
 					</div>
 				) : data && data.items.length === 0 ? (
-					<div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-						<p>No habits planned for today.</p>
-						<Link
-							href="/plan"
-							className={cn(buttonVariants({ size: "sm" }), "mt-4")}
-						>
-							Plan your week
-						</Link>
-					</div>
+					<TodayEmptyState />
 				) : (
 					data?.items.map((item) => {
 						return (
