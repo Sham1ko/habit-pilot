@@ -61,6 +61,7 @@ export function HabitCard({
 	onHabitDelete,
 }: HabitCardProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const cuPerWeek = formatCuPerWeek(habit);
 
 	return (
@@ -96,49 +97,58 @@ export function HabitCard({
 										Micro-step
 									</span>
 								) : null}
-								<span className="flex items-center gap-1 text-xs">
-									Details
-									<ChevronDown
-										className={`size-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
-									/>
-								</span>
 							</div>
 						</div>
 					</div>
 
-					<div
-						className="flex items-center gap-2"
-						onClick={(event) => event.stopPropagation()}
-						onKeyDown={(event) => event.stopPropagation()}
-					>
-						<span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1 text-sm font-medium">
-							{cuPerWeek} CU/wk
-							<Info className="size-3.5 text-muted-foreground" />
-						</span>
-						<HabitEditDialog habit={habit} onHabitUpdated={onHabitUpdated} />
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9 rounded-md"
-									aria-label="More actions"
-									disabled={isDeleting}
-								>
-									<MoreHorizontal className="size-4" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-36">
-								<DropdownMenuItem
-									variant="destructive"
-									disabled={isDeleting}
-									onSelect={() => onHabitDelete(habit)}
-								>
-									{isDeleting ? "Deleting..." : "Delete"}
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+					<div className="flex self-center items-center gap-2">
+						<div
+							className="flex items-center gap-2"
+							onClick={(event) => event.stopPropagation()}
+							onKeyDown={(event) => event.stopPropagation()}
+						>
+							<span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1 text-sm font-medium">
+								{cuPerWeek} CU/wk
+								<Info className="size-3.5 text-muted-foreground" />
+							</span>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 rounded-md"
+										aria-label="More actions"
+										disabled={isDeleting}
+									>
+										<MoreHorizontal className="size-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-36">
+									<DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
+										Edit
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										variant="destructive"
+										disabled={isDeleting}
+										onSelect={() => onHabitDelete(habit)}
+									>
+										{isDeleting ? "Deleting..." : "Delete"}
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+							<HabitEditDialog
+								habit={habit}
+								onHabitUpdated={onHabitUpdated}
+								open={isEditDialogOpen}
+								onOpenChange={setIsEditDialogOpen}
+								trigger={false}
+							/>
+						</div>
+						<ChevronDown
+							aria-hidden
+							className={`size-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+						/>
 					</div>
 				</div>
 
