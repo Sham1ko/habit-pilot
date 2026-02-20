@@ -6,6 +6,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TodayHabitItem } from "./_components/today-habit-item";
 import { TodayHeader } from "./_components/today-header-info";
+import { WeeklyCapacityCard } from "./_components/weekly-capacity-card";
 import type { HabitStatus, TodayAction, TodayItem } from "./types";
 
 type TodayData = {
@@ -323,46 +324,16 @@ export default function TodayPage() {
 
 	const weeklyCapacity = data?.weekly_capacity_cu ?? null;
 	const usedCu = data?.used_cu ?? 0;
-	const capacityRatio =
-		weeklyCapacity && weeklyCapacity > 0 ? usedCu / weeklyCapacity : 0;
-	const capacityState =
-		capacityRatio > 1 ? "over" : capacityRatio > 0.9 ? "high" : "ok";
-
-	const capacityBarClass = cn(
-		"h-2 rounded-full transition-all",
-		capacityState === "over" && "bg-rose-500",
-		capacityState === "high" && "bg-amber-500",
-		capacityState === "ok" && "bg-emerald-500",
-	);
 
 	return (
 		<section className="space-y-4 w-full md:space-y-6">
 			<header className="flex flex-wrap items-start justify-between gap-4">
 				<TodayHeader isLoading={isLoading} date={data?.date} items={data?.items ?? []} />
-
-				<div className="w-full max-w-sm rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
-					<div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-						<span>Weekly capacity</span>
-						<span>
-							{weeklyCapacity
-								? `${formatCu(usedCu)} / ${formatCu(weeklyCapacity)} CU`
-								: "Set weekly capacity"}
-						</span>
-					</div>
-					<div className="mt-2 h-2 rounded-full bg-muted">
-						<div
-							className={capacityBarClass}
-							style={{
-								width: `${Math.min(capacityRatio * 100, 100)}%`,
-							}}
-						/>
-					</div>
-					{capacityState === "over" ? (
-						<p className="mt-2 text-xs text-rose-600">
-							You’re over capacity. Consider micro-steps today.
-						</p>
-					) : null}
-				</div>
+				<WeeklyCapacityCard
+					weeklyCapacity={weeklyCapacity}
+					usedCu={usedCu}
+					formatCu={formatCu}
+				/>
 			</header>
 
 			{actionError ? (
