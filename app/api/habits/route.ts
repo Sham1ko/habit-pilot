@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { habits } from "@/lib/db/schema";
 
 type HabitPayload = {
+  emoji?: string | null;
   title?: string;
   description?: string | null;
   weight_cu?: number | string;
@@ -87,6 +88,7 @@ const tagsSchema = z.preprocess(
 );
 
 const habitCreateSchema = z.object({
+  emoji: nullableText.optional(),
   title: requiredText,
   description: nullableText.optional(),
   weight_cu: decimalString,
@@ -100,6 +102,7 @@ const habitCreateSchema = z.object({
 const habitUpdateSchema = z
   .object({
     id: z.coerce.number().int().positive(),
+    emoji: nullableText.optional(),
     title: requiredText.optional(),
     description: nullableText.optional(),
     weight_cu: decimalString.optional(),
@@ -146,6 +149,7 @@ export async function POST(request: Request) {
 
     const {
       title,
+      emoji,
       description,
       weight_cu,
       freq_type,
@@ -163,6 +167,7 @@ export async function POST(request: Request) {
       .insert(habits)
       .values({
         user_id: user.id,
+        emoji: emoji ?? null,
         title,
         description: description ?? null,
         weight_cu,
@@ -250,6 +255,7 @@ export async function PATCH(request: Request) {
 
     const {
       title,
+      emoji,
       description,
       weight_cu,
       freq_type,
@@ -264,6 +270,7 @@ export async function PATCH(request: Request) {
 
     const updateData: {
       title?: string;
+      emoji?: string | null;
       description?: string | null;
       weight_cu?: string;
       freq_type?: string;
@@ -274,6 +281,7 @@ export async function PATCH(request: Request) {
       has_micro?: boolean;
     } = {
       title,
+      emoji,
       description,
       weight_cu,
       freq_type,
