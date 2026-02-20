@@ -329,6 +329,13 @@ export default function TodayPage() {
 			));
 		}
 
+		if (error) {
+			return (
+				<div className="rounded-xl border border-red-300 bg-red-50 p-4">
+					<p className="text-sm text-red-700">{error}</p>
+				</div>
+			);
+		}
 
 		if (!data || data.items.length === 0) {
 			return <TodayEmptyState />;
@@ -357,11 +364,6 @@ export default function TodayPage() {
 			</header>
 
 			<div className="grid gap-4">
-				{error ? (
-					<div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-						{error}
-					</div>
-				) : null}
 				{renderHabitsContent()}
 			</div>
 

@@ -15,9 +15,8 @@ export function Header() {
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
 
-	const headerClassName = `fixed top-0 z-40 w-full border-b border-border/60 bg-background/80 transition-all duration-200 ${
-		isScrolled ? "backdrop-blur shadow-sm" : ""
-	}`;
+	const headerClassName = `fixed top-0 z-40 w-full border-b border-border/60 bg-background/80 transition-all duration-200 ${isScrolled ? "backdrop-blur shadow-sm" : ""
+		}`;
 
 	return (
 		<header className={headerClassName}>
@@ -46,7 +45,7 @@ export function Header() {
 						</a>
 					</nav>
 					<Button asChild variant="outline" size="sm" className="md:ml-2">
-						<Link href="/app">Open app</Link>
+						<Link href="/today">Open app</Link>
 					</Button>
 				</div>
 			</div>
