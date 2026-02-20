@@ -21,9 +21,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { HabitEmojiPicker } from "./habit-emoji-picker";
 import type { HabitListItem } from "./types";
 
 type HabitFormState = {
+	emoji: string;
 	title: string;
 	description: string;
 	weight_cu: string;
@@ -38,6 +40,7 @@ export type HabitCreateInitialValues = Partial<HabitFormState> & {
 };
 
 const initialState: HabitFormState = {
+	emoji: "",
 	title: "",
 	description: "",
 	weight_cu: "",
@@ -134,6 +137,7 @@ export function HabitCreateDialog({
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
+					emoji: formState.emoji.trim() || null,
 					title: formState.title,
 					description: formState.description || null,
 					weight_cu: formState.weight_cu,
@@ -183,13 +187,22 @@ export function HabitCreateDialog({
 					<div className="grid gap-4">
 						<div className="grid gap-3">
 							<Label htmlFor="habit-name">Name</Label>
-							<Input
-								id="habit-name"
-								name="title"
-								placeholder="Morning run"
-								value={formState.title}
-								onChange={handleChange}
-							/>
+							<div className="flex items-center gap-2">
+								<HabitEmojiPicker
+									id="habit-emoji"
+									value={formState.emoji}
+									onChange={(emoji) =>
+										setFormState((prev) => ({ ...prev, emoji }))
+									}
+								/>
+								<Input
+									id="habit-name"
+									name="title"
+									placeholder="Morning run"
+									value={formState.title}
+									onChange={handleChange}
+								/>
+							</div>
 						</div>
 						<div className="grid gap-3">
 							<Label htmlFor="habit-description">Context / Description</Label>
