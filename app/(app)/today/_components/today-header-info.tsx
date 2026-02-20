@@ -1,3 +1,4 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import type { TodayItem } from "../types";
 
 type TodayHeaderInfoProps = {
@@ -72,21 +73,27 @@ function getDayTone(items: TodayItem[]): DayTone {
 
 export function TodayHeaderInfo({ date, items = [] }: TodayHeaderInfoProps) {
 	const todayLabel = date ? `Happy ${formatWeekday(date)}` : "Happy Today";
-	const dateLabel = date ? formatDateLabel(date) : "";
+	const dateLabel = date ? formatDateLabel(date) : "Today";
 	const tone = getDayTone(items);
 	const { subtitle, emoji } = DAY_TONE_CONTENT[tone];
 
 	return (
 		<div className="max-w-xl space-y-1">
-			<p className="text-2xl font-semibold leading-tight tracking-[-0.01em] text-foreground sm:text-3xl">
+			<p className="text-2xl font-semibold text-foreground sm:text-3xl">
 				{todayLabel} <span aria-hidden>{emoji}</span>
 			</p>
-			{dateLabel ? (
-				<p className="text-sm font-medium text-muted-foreground">{dateLabel}</p>
-			) : null}
-			{subtitle ? (
-				<p className="text-sm leading-relaxed text-muted-foreground/90">{subtitle}</p>
-			) : null}
+			<p className="text-sm font-medium text-muted-foreground">{dateLabel}</p>
+			<p className="text-sm text-muted-foreground/90">{subtitle}</p>
+		</div>
+	);
+}
+
+export function TodayHeaderInfoSkeleton() {
+	return (
+		<div className="max-w-xl space-y-1">
+			<Skeleton className="h-8 w-55 sm:h-9 sm:w-68" />
+			<Skeleton className="h-5 w-18.5" />
+			<Skeleton className="h-5 w-82 max-w-full" />
 		</div>
 	);
 }
