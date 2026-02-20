@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { HabitCard } from "./habit-card";
-import { HabitCreateDialog } from "./habit-create-dialog";
-import { HabitsEmptyState } from "./habit-empty-state";
+import { HabitCard } from "./_components/habit-card";
+import { HabitCreateDialog } from "./_components/habit-create-dialog";
+import { HabitsEmptyState } from "./_components/habit-empty-state";
 import type { HabitListItem } from "./types";
 
 export default function HabitsPage() {

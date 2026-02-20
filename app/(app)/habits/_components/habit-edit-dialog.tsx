@@ -1,12 +1,6 @@
 "use client";
 
-import {
-	type ChangeEvent,
-	type FormEvent,
-	type ReactNode,
-	useCallback,
-	useState,
-} from "react";
+import { type ChangeEvent, type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -22,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { HabitEmojiPicker } from "./habit-emoji-picker";
-import type { HabitListItem } from "./types";
+import type { HabitListItem } from "../types";
 
 type HabitFormState = {
 	emoji: string;
@@ -35,64 +29,60 @@ type HabitFormState = {
 	micro_weight_cu: string;
 };
 
-export type HabitCreateInitialValues = Partial<HabitFormState> & {
-	hasMicro?: boolean;
+type HabitEditDialogProps = {
+	habit: HabitListItem;
+	onHabitUpdated?: (habit: HabitListItem) => void;
 };
 
-const initialState: HabitFormState = {
-	emoji: "",
-	title: "",
-	description: "",
-	weight_cu: "",
-	freq_type: "weekly",
-	freq_per_week: "3",
-	micro_title: "",
-	micro_weight_cu: "",
-};
+function toStringValue(value: string | number | null | undefined) {
+	if (typeof value === "number") {
+		return value.toString();
+	}
 
-type HabitCreateDialogProps = {
-	onHabitCreated?: (habit: HabitListItem) => void;
-	trigger?: ReactNode;
-	initialValues?: HabitCreateInitialValues;
-};
+	if (typeof value === "string") {
+		return value;
+	}
 
-export function HabitCreateDialog({
-	onHabitCreated,
-	trigger,
-	initialValues,
-}: HabitCreateDialogProps) {
-	const buildInitialFormState = useCallback(
-		(): HabitFormState => ({
-			...initialState,
-			...initialValues,
-			freq_type:
-				initialValues?.freq_type === "daily" ||
-				initialValues?.freq_type === "weekly"
-					? initialValues.freq_type
-					: initialState.freq_type,
-		}),
-		[initialValues],
-	);
+	return "";
+}
 
+function getInitialState(habit: HabitListItem): HabitFormState {
+	return {
+		emoji: habit.emoji ?? "",
+		title: habit.title ?? "",
+		description: habit.description ?? "",
+		weight_cu: toStringValue(habit.weight_cu),
+		freq_type: habit.freq_type === "daily" ? "daily" : "weekly",
+		freq_per_week: toStringValue(habit.freq_per_week || "3"),
+		micro_title: habit.micro_title ?? "",
+		micro_weight_cu: toStringValue(habit.micro_weight_cu),
+	};
+}
+
+export function HabitEditDialog({
+	habit,
+	onHabitUpdated,
+}: HabitEditDialogProps) {
 	const [open, setOpen] = useState(false);
-	const [hasMicro, setHasMicro] = useState(Boolean(initialValues?.hasMicro));
-	const [formState, setFormState] = useState<HabitFormState>(
-		buildInitialFormState,
+	const [hasMicro, setHasMicro] = useState(
+		habit.has_micro ||
+			Boolean(habit.micro_title) ||
+			Number.parseFloat(toStringValue(habit.micro_weight_cu)) > 0,
 	);
+	const [formState, setFormState] = useState(() => getInitialState(habit));
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const resetForm = useCallback(() => {
-		setFormState(buildInitialFormState());
-		setHasMicro(Boolean(initialValues?.hasMicro));
-		setError(null);
-	}, [buildInitialFormState, initialValues?.hasMicro]);
-
 	const handleOpenChange = (nextOpen: boolean) => {
 		setOpen(nextOpen);
-		resetForm();
-		if (!nextOpen) {
-			setIsSubmitting(false);
+		if (nextOpen) {
+			setFormState(getInitialState(habit));
+			setHasMicro(
+				habit.has_micro ||
+					Boolean(habit.micro_title) ||
+					Number.parseFloat(toStringValue(habit.micro_weight_cu)) > 0,
+			);
+			setError(null);
 		}
 	};
 
@@ -132,20 +122,20 @@ export function HabitCreateDialog({
 				formState.freq_type === "daily" ? "7" : formState.freq_per_week;
 
 			const response = await fetch("/api/habits", {
-				method: "POST",
+				method: "PATCH",
 				headers: {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
+					id: habit.id,
 					emoji: formState.emoji.trim() || null,
 					title: formState.title,
 					description: formState.description || null,
 					weight_cu: formState.weight_cu,
-					micro_title: hasMicro ? formState.micro_title || null : null,
-					micro_weight_cu: hasMicro ? formState.micro_weight_cu : "0",
 					freq_type: formState.freq_type,
 					freq_per_week: freqPerWeek,
-					context_tags: [],
+					micro_title: hasMicro ? formState.micro_title || null : null,
+					micro_weight_cu: hasMicro ? formState.micro_weight_cu : "0",
 				}),
 			});
 
@@ -155,17 +145,17 @@ export function HabitCreateDialog({
 			} | null;
 
 			if (!response.ok) {
-				setError(data?.error ?? "Failed to create habit.");
+				setError(data?.error ?? "Failed to update habit.");
 				return;
 			}
 
 			if (data?.habit) {
-				onHabitCreated?.(data.habit);
+				onHabitUpdated?.(data.habit);
 			}
 
 			setOpen(false);
 		} catch {
-			setError("Failed to create habit.");
+			setError("Failed to update habit.");
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -174,29 +164,31 @@ export function HabitCreateDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>
-				{trigger ?? <Button type="button">Add habit</Button>}
+				<Button type="button" variant="outline" size="sm">
+					Edit
+				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-[460px]">
+			<DialogContent className="sm:max-w-[520px]">
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<DialogHeader>
-						<DialogTitle>Create habit</DialogTitle>
+						<DialogTitle>Edit habit</DialogTitle>
 						<DialogDescription>
-							Define the basics for a new habit. You can refine it later.
+							Update the details for this habit.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
 						<div className="grid gap-3">
-							<Label htmlFor="habit-name">Name</Label>
+							<Label htmlFor={`habit-name-${habit.id}`}>Name</Label>
 							<div className="flex items-center gap-2">
 								<HabitEmojiPicker
-									id="habit-emoji"
+									id={`habit-emoji-${habit.id}`}
 									value={formState.emoji}
 									onChange={(emoji) =>
 										setFormState((prev) => ({ ...prev, emoji }))
 									}
 								/>
 								<Input
-									id="habit-name"
+									id={`habit-name-${habit.id}`}
 									name="title"
 									placeholder="Morning run"
 									value={formState.title}
@@ -205,9 +197,11 @@ export function HabitCreateDialog({
 							</div>
 						</div>
 						<div className="grid gap-3">
-							<Label htmlFor="habit-description">Context / Description</Label>
+							<Label htmlFor={`habit-description-${habit.id}`}>
+								Context / Description
+							</Label>
 							<Input
-								id="habit-description"
+								id={`habit-description-${habit.id}`}
 								name="description"
 								placeholder="Park, 20 minutes, easy pace"
 								value={formState.description}
@@ -215,9 +209,9 @@ export function HabitCreateDialog({
 							/>
 						</div>
 						<div className="grid gap-3">
-							<Label htmlFor="habit-capacity">Capacity</Label>
+							<Label htmlFor={`habit-capacity-${habit.id}`}>Capacity</Label>
 							<Input
-								id="habit-capacity"
+								id={`habit-capacity-${habit.id}`}
 								name="weight_cu"
 								placeholder="10"
 								type="number"
@@ -263,7 +257,7 @@ export function HabitCreateDialog({
 							{formState.freq_type === "weekly" ? (
 								<div className="flex items-center gap-2">
 									<Input
-										id="habit-frequency"
+										id={`habit-frequency-${habit.id}`}
 										name="freq_per_week"
 										placeholder="3"
 										type="number"
@@ -288,7 +282,7 @@ export function HabitCreateDialog({
 							<div>
 								<Label
 									className="text-sm font-medium"
-									htmlFor="habit-micro-toggle"
+									htmlFor={`habit-micro-toggle-${habit.id}`}
 								>
 									Microstep
 								</Label>
@@ -297,7 +291,7 @@ export function HabitCreateDialog({
 								</p>
 							</div>
 							<Switch
-								id="habit-micro-toggle"
+								id={`habit-micro-toggle-${habit.id}`}
 								checked={hasMicro}
 								onCheckedChange={(next) => {
 									setHasMicro(next);
@@ -315,9 +309,11 @@ export function HabitCreateDialog({
 						{hasMicro ? (
 							<>
 								<div className="grid gap-3">
-									<Label htmlFor="habit-microstep">Microstep</Label>
+									<Label htmlFor={`habit-microstep-${habit.id}`}>
+										Microstep
+									</Label>
 									<Input
-										id="habit-microstep"
+										id={`habit-microstep-${habit.id}`}
 										name="micro_title"
 										placeholder="Put on running shoes"
 										value={formState.micro_title}
@@ -325,9 +321,11 @@ export function HabitCreateDialog({
 									/>
 								</div>
 								<div className="grid gap-3">
-									<Label htmlFor="habit-micro-weight">Micro capacity</Label>
+									<Label htmlFor={`habit-micro-weight-${habit.id}`}>
+										Micro capacity
+									</Label>
 									<Input
-										id="habit-micro-weight"
+										id={`habit-micro-weight-${habit.id}`}
 										name="micro_weight_cu"
 										placeholder="1"
 										type="number"
@@ -349,7 +347,7 @@ export function HabitCreateDialog({
 							</Button>
 						</DialogClose>
 						<Button type="submit" disabled={isSubmitting}>
-							{isSubmitting ? "Adding..." : "Add habit"}
+							{isSubmitting ? "Saving..." : "Save changes"}
 						</Button>
 					</DialogFooter>
 				</form>
