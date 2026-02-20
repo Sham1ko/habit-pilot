@@ -104,7 +104,7 @@ export function DailyLoadOutcomesChart({
 						<Bar
 							dataKey="plannedCu"
 							name="Planned"
-							fill="hsl(var(--muted-foreground) / 0.35)"
+							fill="hsl(220 16% 62%)"
 							radius={[6, 6, 0, 0]}
 						/>
 						<Bar
