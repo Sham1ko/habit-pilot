@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, CornerDownRight, Info, MoreHorizontal } from "lucide-react";
+import { ChevronDown, CornerDownRight, Dumbbell, Info, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible } from "@/components/ui/collapsible";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HabitEditDialog } from "./habit-edit-dialog";
 import type { HabitListItem } from "../types";
+import { Separator } from "@/components/ui/separator";
 
 type HabitCardProps = {
 	habit: HabitListItem;
@@ -35,25 +36,6 @@ function formatSchedule(habit: HabitListItem) {
 	return `${freqType} • ${freqCount}`;
 }
 
-function formatCuPerWeek(habit: HabitListItem) {
-	const weightCu = Number(habit.weight_cu);
-	const freqType = habit.freq_type?.trim().toLowerCase() ?? "weekly";
-	const freqPerWeek = Number(habit.freq_per_week);
-
-	const safeWeight = Number.isFinite(weightCu) ? weightCu : 0;
-	const safeFreq =
-		freqType === "daily"
-			? 7
-			: Number.isFinite(freqPerWeek)
-				? Math.max(0, freqPerWeek)
-				: 0;
-
-	const weeklyCu = safeWeight * safeFreq;
-	const rounded = Math.round(weeklyCu * 10) / 10;
-
-	return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
-}
-
 export function HabitCard({
 	habit,
 	isDeleting,
@@ -62,7 +44,6 @@ export function HabitCard({
 }: HabitCardProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-	const cuPerWeek = formatCuPerWeek(habit);
 
 	return (
 		<Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -77,25 +58,32 @@ export function HabitCard({
 						setIsOpen((prev) => !prev);
 					}
 				}}
-				className="rounded-xl border border-border bg-card px-4 py-4 text-card-foreground cursor-pointer"
+				className="rounded-xl border border-border bg-card p-4 text-card-foreground cursor-pointer"
 			>
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<div className="flex items-center gap-4">
-						<div className="border p-4 rounded-lg bg-muted text-xl">
+						<div className="border p-3 rounded-lg bg-muted text-2xl">
 							{habit.emoji ? `${habit.emoji} ` : ""}
 						</div>
-						<div>
+						<div className="flex gap-4">
 							<h2 className="truncate text-lg font-semibold">
 								{habit.title}
 							</h2>
 
-							<div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+							<div className="flex items-center gap-2 text-sm text-muted-foreground">
+								<span className="flex gap-1 text-blue-500 rounded-full border border-blue-500 bg-blue-50 text-xs font-medium px-2 py-0.5">
+									<Dumbbell strokeWidth={2} className="size-4" />
+									{habit.weight_cu} CU
+								</span>
+								<Separator orientation="vertical" className="mx-1" />
 								<span>{formatSchedule(habit)}</span>
-								{habit.has_micro ? (
-									<span className="flex gap-1 items-center rounded-full border border-border/70 bg-background px-2 py-0.5 text-xs">
+								{habit.has_micro ? (<>
+									<Separator orientation="vertical" className="mx-1" />
+									<span className="flex gap-1 items-center rounded-full border border-border/70 bg-muted px-2 py-0.5 text-xs">
 										<CornerDownRight className="size-3" />
 										Micro-step
 									</span>
+								</>
 								) : null}
 							</div>
 						</div>
@@ -107,9 +95,6 @@ export function HabitCard({
 							onClick={(event) => event.stopPropagation()}
 							onKeyDown={(event) => event.stopPropagation()}
 						>
-							<span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1 text-sm font-medium">
-								{cuPerWeek} CU/wk
-							</span>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
@@ -179,7 +164,7 @@ export function HabitCard({
 								Capacity
 							</p>
 							<p>
-								{habit.weight_cu} CU per completion • {cuPerWeek} CU per week
+								{habit.weight_cu} CU per completion
 							</p>
 						</div>
 						<div className="space-y-1">
