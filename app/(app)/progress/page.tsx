@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { buildProgressCsv, getProgressCsvFilename } from "@/lib/progress/csv";
 import type {
     ProgressHabitAttention,
     ProgressRangePreset,
@@ -26,8 +25,6 @@ type ProgressFetchParams = {
     start?: string;
     end?: string;
 };
-
-const SHARE_STORAGE_KEY = "habit_pilot_progress_share_state_v1";
 
 function getPayloadError(payload: unknown) {
     if (
@@ -50,16 +47,6 @@ function isProgressResponse(payload: unknown): payload is ProgressResponse {
         "charts" in payload &&
         "habits" in payload
     );
-}
-
-function createShareToken() {
-    if (
-        typeof crypto !== "undefined" &&
-        typeof crypto.randomUUID === "function"
-    ) {
-        return crypto.randomUUID();
-    }
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 async function fetchProgress(params: ProgressFetchParams, signal: AbortSignal) {
@@ -112,47 +99,6 @@ export default function ProgressPage() {
         useState<ProgressHabitAttention | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
 
-    const [shareEnabled, setShareEnabled] = useState(false);
-    const [shareToken, setShareToken] = useState("");
-
-    useEffect(() => {
-        if (typeof window === "undefined") {
-            return;
-        }
-
-        try {
-            const raw = window.localStorage.getItem(SHARE_STORAGE_KEY);
-            if (!raw) {
-                return;
-            }
-
-            const parsed = JSON.parse(raw) as {
-                enabled?: boolean;
-                token?: string;
-            } | null;
-            if (!parsed) {
-                return;
-            }
-
-            setShareEnabled(Boolean(parsed.enabled));
-            setShareToken(parsed.token ?? "");
-        } catch {
-            // Ignore malformed local state and continue with defaults.
-        }
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === "undefined") {
-            return;
-        }
-
-        const payload = JSON.stringify({
-            enabled: shareEnabled,
-            token: shareToken,
-        });
-        window.localStorage.setItem(SHARE_STORAGE_KEY, payload);
-    }, [shareEnabled, shareToken]);
-
     const loadProgress = useCallback(() => {
         const controller = new AbortController();
         setIsLoading(true);
@@ -196,23 +142,6 @@ export default function ProgressPage() {
         return cancel;
     }, [loadProgress]);
 
-    const shareUrl = useMemo(() => {
-        if (
-            !shareEnabled ||
-            !shareToken ||
-            !data ||
-            typeof window === "undefined"
-        ) {
-            return "";
-        }
-
-        const url = new URL("/progress", window.location.origin);
-        url.searchParams.set("share", shareToken);
-        url.searchParams.set("start", data.range.start);
-        url.searchParams.set("end", data.range.end);
-        return url.toString();
-    }, [shareEnabled, shareToken, data]);
-
     const handlePresetChange = (preset: ProgressRangePreset) => {
         setSelectedPreset(preset);
         setCustomRangeError(null);
@@ -245,47 +174,6 @@ export default function ProgressPage() {
         });
     };
 
-    const handleExportCsv = () => {
-        if (!data || typeof window === "undefined") {
-            return;
-        }
-
-        const csv = buildProgressCsv(data);
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const objectUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = getProgressCsvFilename(data.range);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(objectUrl);
-    };
-
-    const handleCopyShareLink = async () => {
-        if (!shareUrl || typeof window === "undefined") {
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-        } catch {
-            const textarea = document.createElement("textarea");
-            textarea.value = shareUrl;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand("copy");
-            textarea.remove();
-        }
-    };
-
-    const handleShareEnabledChange = (enabled: boolean) => {
-        setShareEnabled(enabled);
-        if (enabled && !shareToken) {
-            setShareToken(createShareToken());
-        }
-    };
-
     const openHabitDetails = (habit: ProgressHabitAttention) => {
         setSelectedHabit(habit);
         setDetailsOpen(true);
@@ -306,11 +194,6 @@ export default function ProgressPage() {
                 onCustomStartChange={setCustomStart}
                 onCustomEndChange={setCustomEnd}
                 onApplyCustomRange={handleApplyCustomRange}
-                onExportCsv={handleExportCsv}
-                shareEnabled={shareEnabled}
-                shareUrl={shareUrl}
-                onShareEnabledChange={handleShareEnabledChange}
-                onCopyShareLink={handleCopyShareLink}
             />
 
             {customRangeError ? (

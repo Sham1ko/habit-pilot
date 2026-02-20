@@ -1,16 +1,8 @@
 "use client";
 
-import { CircleHelp, Download, Share2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CircleHelp } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -19,7 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
     Tooltip,
     TooltipContent,
@@ -36,11 +27,6 @@ type ProgressHeaderProps = {
     onCustomStartChange: (value: string) => void;
     onCustomEndChange: (value: string) => void;
     onApplyCustomRange: () => void;
-    onExportCsv: () => void;
-    shareEnabled: boolean;
-    shareUrl: string;
-    onShareEnabledChange: (enabled: boolean) => void;
-    onCopyShareLink: () => void;
 };
 
 function getPresetLabel(preset: ProgressRangePreset) {
@@ -68,15 +54,7 @@ export function ProgressHeader({
     onCustomStartChange,
     onCustomEndChange,
     onApplyCustomRange,
-    onExportCsv,
-    shareEnabled,
-    shareUrl,
-    onShareEnabledChange,
-    onCopyShareLink,
 }: ProgressHeaderProps) {
-    const [shareDialogOpen, setShareDialogOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
-
     const rangeButtonLabel = useMemo(() => {
         if (preset === "custom" && customStart && customEnd) {
             return `${customStart} → ${customEnd}`;
@@ -110,81 +88,6 @@ export function ProgressHeader({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onExportCsv}
-                    >
-                        <Download className="size-4" />
-                        Export CSV
-                    </Button>
-
-                    <Dialog
-                        open={shareDialogOpen}
-                        onOpenChange={setShareDialogOpen}
-                    >
-                        <DialogTrigger asChild>
-                            <Button type="button" variant="outline">
-                                <Share2 className="size-4" />
-                                Share
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>
-                                    Share read-only progress
-                                </DialogTitle>
-                                <DialogDescription>
-                                    Anyone with the link can view.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                                    <div>
-                                        <p className="text-sm font-medium">
-                                            Enable share link
-                                        </p>
-                                        <p className="text-muted-foreground text-xs">
-                                            Anyone with the link can view
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        checked={shareEnabled}
-                                        onCheckedChange={(next) =>
-                                            onShareEnabledChange(Boolean(next))
-                                        }
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        readOnly
-                                        value={shareEnabled ? shareUrl : ""}
-                                        placeholder="Enable share link to generate URL"
-                                        aria-label="Share URL"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        disabled={!shareEnabled || !shareUrl}
-                                        onClick={async () => {
-                                            onCopyShareLink();
-                                            setCopied(true);
-                                            setTimeout(
-                                                () => setCopied(false),
-                                                1400,
-                                            );
-                                        }}
-                                    >
-                                        {copied ? "Copied" : "Copy"}
-                                    </Button>
-                                </div>
-                                <p className="text-muted-foreground text-xs">
-                                    Share link state is local in this version.
-                                </p>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
