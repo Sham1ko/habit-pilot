@@ -145,7 +145,6 @@ export function HabitCreateDialog({
 					micro_weight_cu: hasMicro ? formState.micro_weight_cu : "0",
 					freq_type: formState.freq_type,
 					freq_per_week: freqPerWeek,
-					context_tags: [],
 				}),
 			});
 
