@@ -34,7 +34,6 @@ type TodayResponse = {
 		habit_micro_title: string | null;
 		habit_micro_weight_cu: string;
 		planned_weight_cu: string;
-		context_tag: string | null;
 		status: HabitStatus;
 		actual_weight_cu: string | null;
 		entry_id: string | null;
@@ -66,7 +65,6 @@ type ActionResponse = {
 type RecoverySuggestion = {
 	occurrenceId: string;
 	habitTitle: string;
-	contextTag: string | null;
 	microTitle: string;
 	suggestedWeight: number;
 	remainingCapacity: number | null;
@@ -242,7 +240,6 @@ export default function TodayPage() {
 		setRecovery({
 			occurrenceId: item.occurrence_id,
 			habitTitle: item.habit_title,
-			contextTag: item.context_tag,
 			microTitle:
 				item.habit_micro_title?.trim() ||
 				`Micro ${item.habit_title.toLowerCase()}`,
@@ -377,7 +374,6 @@ export default function TodayPage() {
 						<div className="mt-3 rounded-lg border border-border/70 bg-background p-3 text-sm">
 							<p className="font-medium">{recovery.microTitle}</p>
 							<p className="text-xs text-muted-foreground">
-								{recovery.contextTag ? `${recovery.contextTag} • ` : ""}
 								Suggested: {formatCu(recovery.suggestedWeight)} CU
 								{recovery.remainingCapacity !== null
 									? ` • ${formatCu(recovery.remainingCapacity)} CU remaining`

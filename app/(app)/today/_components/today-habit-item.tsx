@@ -59,11 +59,6 @@ export function TodayHabitItem({
 						</div>
 						<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 							<CuBadge value={formatCu(item.planned_weight_cu)} />
-							{item.context_tag ? (
-								<span className="rounded-full border border-border/70 bg-background px-2 py-1">
-									{item.context_tag}
-								</span>
-							) : null}
 							{item.habit_has_micro ? (
 								<span className="rounded-full border border-border/70 bg-background px-2 py-1">
 									Micro: {formatCu(item.habit_micro_weight_cu)} CU

@@ -114,14 +114,12 @@ export async function GET() {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
         habit_emoji: habits.emoji,
         habit_title: habits.title,
         habit_weight_cu: habits.weight_cu,
         habit_has_micro: habits.has_micro,
         habit_micro_title: habits.micro_title,
         habit_micro_weight_cu: habits.micro_weight_cu,
-        habit_context_tags: habits.context_tags,
       })
       .from(plannedOccurrences)
       .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
@@ -161,8 +159,6 @@ export async function GET() {
         const dateKey = occurrence.date;
         const entryKey = `${occurrence.habit_id}-${dateKey}`;
         const entry = entryByKey.get(entryKey);
-        const contextTag =
-          occurrence.context_tag ?? occurrence.habit_context_tags?.[0] ?? null;
 
         return {
           occurrence_id: occurrence.id,
@@ -175,7 +171,6 @@ export async function GET() {
           habit_micro_weight_cu:
             occurrence.habit_micro_weight_cu?.toString() ?? "0",
           planned_weight_cu: occurrence.planned_weight_cu?.toString() ?? "0",
-          context_tag: contextTag,
           status: entry?.status ?? "planned",
           actual_weight_cu: entry
             ? (entry.actual_weight_cu?.toString() ?? null)
@@ -236,7 +231,6 @@ export async function POST(request: Request) {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
         habit_title: habits.title,
         habit_weight_cu: habits.weight_cu,
         habit_has_micro: habits.has_micro,

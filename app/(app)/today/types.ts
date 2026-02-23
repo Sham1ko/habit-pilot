@@ -12,7 +12,6 @@ export type TodayItem = {
 	habit_micro_title: string | null;
 	habit_micro_weight_cu: number;
 	planned_weight_cu: number;
-	context_tag: string | null;
 	status: HabitStatus;
 	actual_weight_cu: number | null;
 	entry_id: string | null;
