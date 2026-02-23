@@ -15,7 +15,6 @@ type HabitPayload = {
   micro_weight_cu?: number | string;
   freq_type?: string;
   freq_per_week?: number | string;
-  context_tags?: string[] | string;
 };
 
 function computeHasMicro(
@@ -66,27 +65,6 @@ const nullableText = z.preprocess((value) => {
   return trimmed.length > 0 ? trimmed : null;
 }, z.string().nullable());
 
-const tagsSchema = z.preprocess(
-  (value) => {
-    if (!value) {
-      return [];
-    }
-
-    if (Array.isArray(value)) {
-      return value;
-    }
-
-    if (typeof value === "string") {
-      return value.split(",");
-    }
-
-    return value;
-  },
-  z
-    .array(z.string())
-    .transform((tags) => tags.map((tag) => tag.trim()).filter(Boolean)),
-);
-
 const habitCreateSchema = z.object({
   emoji: nullableText.optional(),
   title: requiredText,
@@ -96,7 +74,6 @@ const habitCreateSchema = z.object({
   freq_per_week: decimalString,
   micro_title: nullableText.optional(),
   micro_weight_cu: decimalString,
-  context_tags: tagsSchema.optional().default([]),
 });
 
 const habitUpdateSchema = z
@@ -110,7 +87,6 @@ const habitUpdateSchema = z
     freq_per_week: decimalString.optional(),
     micro_title: nullableText.optional(),
     micro_weight_cu: decimalString.optional(),
-    context_tags: tagsSchema.optional(),
     is_active: z.boolean().optional(),
   })
   .refine(
@@ -157,7 +133,6 @@ export async function POST(request: Request) {
       freq_per_week,
       micro_title,
       micro_weight_cu,
-      context_tags,
     } = parsed.data;
 
     const microTitle = micro_title ?? null;
@@ -177,7 +152,6 @@ export async function POST(request: Request) {
         has_micro: hasMicro,
         micro_title: microTitle,
         micro_weight_cu,
-        context_tags,
         is_active: true,
       })
       .returning();
@@ -263,7 +237,6 @@ export async function PATCH(request: Request) {
       freq_per_week,
       micro_title,
       micro_weight_cu,
-      context_tags,
       is_active,
     } = parsed.data;
 
@@ -279,7 +252,6 @@ export async function PATCH(request: Request) {
       freq_per_week?: string;
       micro_title?: string | null;
       micro_weight_cu?: string;
-      context_tags?: string[];
       has_micro?: boolean;
       is_active?: boolean;
     } = {
@@ -291,7 +263,6 @@ export async function PATCH(request: Request) {
       freq_per_week,
       micro_title,
       micro_weight_cu,
-      context_tags,
       is_active,
     };
 

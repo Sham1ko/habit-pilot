@@ -15,6 +15,13 @@
       "when": 1771437931241,
       "tag": "0001_cute_thunderbolt_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771866220550,
+      "tag": "0002_true_ink",
+      "breakpoints": true
     }
   ]
 }

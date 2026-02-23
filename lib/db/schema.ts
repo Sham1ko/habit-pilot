@@ -29,10 +29,6 @@ export const habits = sqliteTable("habits", {
   has_micro: integer("has_micro", { mode: "boolean" }).notNull().default(false),
   micro_title: text("micro_title"),
   micro_weight_cu: text("micro_weight_cu").notNull(),
-  context_tags: text("context_tags", { mode: "json" })
-    .notNull()
-    .$type<string[]>()
-    .default([]),
   is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -67,7 +63,6 @@ export const plannedOccurrences = sqliteTable("planned_occurrences", {
     .references(() => habits.id, { onDelete: "cascade" }),
   date: text("date").notNull(),
   planned_weight_cu: text("planned_weight_cu").notNull(),
-  context_tag: text("context_tag"),
 });
 
 export const capacityPlans = sqliteTable("capacity_plans", {
