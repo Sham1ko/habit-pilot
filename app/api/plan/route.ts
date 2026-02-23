@@ -170,6 +170,7 @@ async function getPlannedTotal(
     .where(
       and(
         eq(habits.user_id, userId),
+        eq(habits.is_active, true),
         gte(plannedOccurrences.date, weekStartStr),
         lte(plannedOccurrences.date, weekEndStr),
       ),
@@ -241,6 +242,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
           gte(plannedOccurrences.date, selectedWeekWindow.weekStartDateString),
           lte(plannedOccurrences.date, selectedWeekWindow.weekEndDateString),
         ),
@@ -362,7 +364,11 @@ export async function POST(request: Request) {
       .select()
       .from(habits)
       .where(
-        and(eq(habits.id, parsed.data.habit_id), eq(habits.user_id, user.id)),
+        and(
+          eq(habits.id, parsed.data.habit_id),
+          eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
+        ),
       )
       .limit(1);
 
@@ -550,6 +556,7 @@ export async function PATCH(request: Request) {
         and(
           eq(plannedOccurrences.id, parsed.data.occurrence_id),
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
         ),
       )
       .limit(1);

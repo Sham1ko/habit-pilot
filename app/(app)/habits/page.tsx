@@ -12,6 +12,7 @@ export default function HabitsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingHabitId, setDeletingHabitId] = useState<number | null>(null);
+  const [togglingHabitId, setTogglingHabitId] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,6 +118,52 @@ export default function HabitsPage() {
     }
   };
 
+  const handleHabitToggleActive = async (habit: HabitListItem) => {
+    if (togglingHabitId !== null || deletingHabitId !== null) {
+      return;
+    }
+
+    setTogglingHabitId(habit.id);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/habits", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: habit.id,
+          is_active: !habit.is_active,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        habit?: HabitListItem;
+        error?: string;
+      } | null;
+
+      if (!response.ok || !data?.habit) {
+        throw new Error(data?.error ?? "Failed to update habit status.");
+      }
+      const updatedHabit = data.habit;
+
+      setHabits((prev) =>
+        prev.map((item) =>
+          item.id === updatedHabit.id ? updatedHabit : item,
+        ),
+      );
+    } catch (toggleError) {
+      setError(
+        toggleError instanceof Error
+          ? toggleError.message
+          : "Failed to update habit status.",
+      );
+    } finally {
+      setTogglingHabitId(null);
+    }
+  };
+
   const hasItems = habits.length > 0;
 
   if (isLoading) {
@@ -151,8 +198,10 @@ export default function HabitsPage() {
               key={habit.id}
               habit={habit}
               isDeleting={deletingHabitId === habit.id}
+              isToggling={togglingHabitId === habit.id}
               onHabitUpdated={handleHabitUpdated}
               onHabitDelete={handleHabitDelete}
+              onHabitToggleActive={handleHabitToggleActive}
             />
           ))
         )}

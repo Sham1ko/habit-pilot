@@ -9,4 +9,5 @@ export type HabitListItem = {
 	micro_title: string | null;
 	micro_weight_cu: string;
 	has_micro: boolean;
+	is_active: boolean;
 };

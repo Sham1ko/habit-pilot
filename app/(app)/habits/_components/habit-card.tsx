@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, CornerDownRight, MoreHorizontal } from "lucide-react";
 import { CuBadge } from "@/components/shared/cu-badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible } from "@/components/ui/collapsible";
 import {
@@ -18,8 +19,10 @@ import { Separator } from "@/components/ui/separator";
 type HabitCardProps = {
 	habit: HabitListItem;
 	isDeleting: boolean;
+	isToggling: boolean;
 	onHabitUpdated: (habit: HabitListItem) => void;
 	onHabitDelete: (habit: HabitListItem) => void;
+	onHabitToggleActive: (habit: HabitListItem) => void;
 };
 
 function formatSchedule(habit: HabitListItem) {
@@ -40,8 +43,10 @@ function formatSchedule(habit: HabitListItem) {
 export function HabitCard({
 	habit,
 	isDeleting,
+	isToggling,
 	onHabitUpdated,
 	onHabitDelete,
+	onHabitToggleActive,
 }: HabitCardProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,7 +64,9 @@ export function HabitCard({
 						setIsOpen((prev) => !prev);
 					}
 				}}
-				className="rounded-xl border border-border bg-card p-4 text-card-foreground cursor-pointer"
+				className={`rounded-xl border border-border bg-card p-4 text-card-foreground cursor-pointer ${
+					habit.is_active ? "" : "opacity-80"
+				}`}
 			>
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<div className="flex items-center gap-4">
@@ -70,6 +77,9 @@ export function HabitCard({
 							<h2 className="truncate text-lg font-semibold">
 								{habit.title}
 							</h2>
+							{habit.is_active ? null : (
+								<Badge variant="muted">Inactive</Badge>
+							)}
 
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">
 								<CuBadge value={habit.weight_cu} />
@@ -111,8 +121,18 @@ export function HabitCard({
 										Edit
 									</DropdownMenuItem>
 									<DropdownMenuItem
+										disabled={isDeleting || isToggling}
+										onSelect={() => onHabitToggleActive(habit)}
+									>
+										{isToggling
+											? "Updating..."
+											: habit.is_active
+												? "Deactivate"
+												: "Activate"}
+									</DropdownMenuItem>
+									<DropdownMenuItem
 										variant="destructive"
-										disabled={isDeleting}
+										disabled={isDeleting || isToggling}
 										onSelect={() => onHabitDelete(habit)}
 									>
 										{isDeleting ? "Deleting..." : "Delete"}

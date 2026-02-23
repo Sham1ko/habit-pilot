@@ -128,6 +128,7 @@ export async function GET() {
       .where(
         and(
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
           gte(plannedOccurrences.date, weekStartStr),
           lte(plannedOccurrences.date, weekEndStr),
         ),
@@ -141,6 +142,7 @@ export async function GET() {
       .where(
         and(
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
           gte(habitEntries.date, weekStartStr),
           lte(habitEntries.date, weekEndStr),
         ),
@@ -246,6 +248,7 @@ export async function POST(request: Request) {
         and(
           eq(plannedOccurrences.id, parsed.data.occurrenceId),
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
         ),
       )
       .limit(1);
@@ -334,6 +337,7 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
           gte(plannedOccurrences.date, weekStartStr),
           lte(plannedOccurrences.date, weekEndStr),
         ),
@@ -346,6 +350,7 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(habits.user_id, user.id),
+          eq(habits.is_active, true),
           gte(habitEntries.date, weekStartStr),
           lte(habitEntries.date, weekEndStr),
         ),

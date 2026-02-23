@@ -111,6 +111,7 @@ const habitUpdateSchema = z
     micro_title: nullableText.optional(),
     micro_weight_cu: decimalString.optional(),
     context_tags: tagsSchema.optional(),
+    is_active: z.boolean().optional(),
   })
   .refine(
     (value) =>
@@ -263,6 +264,7 @@ export async function PATCH(request: Request) {
       micro_title,
       micro_weight_cu,
       context_tags,
+      is_active,
     } = parsed.data;
 
     const hasMicroInput =
@@ -279,6 +281,7 @@ export async function PATCH(request: Request) {
       micro_weight_cu?: string;
       context_tags?: string[];
       has_micro?: boolean;
+      is_active?: boolean;
     } = {
       title,
       emoji,
@@ -289,6 +292,7 @@ export async function PATCH(request: Request) {
       micro_title,
       micro_weight_cu,
       context_tags,
+      is_active,
     };
 
     if (hasMicroInput) {
