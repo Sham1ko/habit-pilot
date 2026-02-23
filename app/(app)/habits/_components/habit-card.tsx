@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HabitEditDialog } from "./habit-edit-dialog";
 import type { HabitListItem } from "../types";
-import { Separator } from "@/components/ui/separator";
 
 type HabitCardProps = {
 	habit: HabitListItem;
@@ -68,36 +67,37 @@ export function HabitCard({
 					habit.is_active ? "" : "opacity-80"
 				}`}
 			>
-				<div className="flex flex-wrap items-start justify-between gap-4">
-					<div className="flex items-center gap-4">
-						<div className="border p-3 rounded-lg bg-muted text-2xl">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					<div className="flex min-w-0 items-start gap-3 sm:gap-4">
+						<div className="border p-3 rounded-lg bg-muted text-2xl shrink-0">
 							{habit.emoji ? `${habit.emoji} ` : ""}
 						</div>
-						<div className="flex gap-4">
-							<h2 className="truncate text-lg font-semibold">
-								{habit.title}
-							</h2>
-							{habit.is_active ? null : (
-								<Badge variant="muted">Inactive</Badge>
-							)}
+						<div className="min-w-0 space-y-2">
+							<div className="flex flex-wrap items-center gap-2">
+								<h2 className="text-lg font-semibold leading-tight break-words">
+									{habit.title}
+								</h2>
+								{habit.is_active ? null : (
+									<Badge variant="muted">Inactive</Badge>
+								)}
+							</div>
 
-							<div className="flex items-center gap-2 text-sm text-muted-foreground">
+							<div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
 								<CuBadge value={habit.weight_cu} />
-								<Separator orientation="vertical" className="mx-1" />
-								<span>{formatSchedule(habit)}</span>
-								{habit.has_micro ? (<>
-									<Separator orientation="vertical" className="mx-1" />
+								<span className="rounded-full border border-border/70 bg-background px-2 py-0.5">
+									{formatSchedule(habit)}
+								</span>
+								{habit.has_micro ? (
 									<span className="flex gap-1 items-center rounded-full border border-border/70 bg-muted px-2 py-0.5 text-xs">
 										<CornerDownRight className="size-3" />
 										Micro-step
 									</span>
-								</>
 								) : null}
 							</div>
 						</div>
 					</div>
 
-					<div className="flex self-center items-center gap-2">
+					<div className="ml-auto flex items-center gap-2 sm:ml-0 sm:self-center">
 						<div
 							className="flex items-center gap-2"
 							onClick={(event) => event.stopPropagation()}
