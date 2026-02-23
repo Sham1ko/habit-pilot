@@ -52,7 +52,6 @@ type PlanResponse = {
             habit_id: number;
             habit_title: string;
             planned_weight_cu: string;
-            context_tag: string | null;
             habit_weight_cu: string;
             habit_has_micro: boolean;
             habit_micro_weight_cu: string;
@@ -65,7 +64,6 @@ type PlanResponse = {
         freq_per_week: string;
         has_micro: boolean;
         micro_weight_cu: string;
-        context_tags: string[];
     }>;
     error?: string;
 };
@@ -76,7 +74,6 @@ type OccurrenceResponse = {
         habit_id: number;
         date: string;
         planned_weight_cu: string;
-        context_tag: string | null;
         habit_title: string;
         habit_weight_cu: string;
         habit_has_micro: boolean;
@@ -123,7 +120,6 @@ function normalizePlanResponse(data: PlanResponse): PlanData {
             weight_cu: Number(habit.weight_cu),
             freq_per_week: Number(habit.freq_per_week),
             micro_weight_cu: Number(habit.micro_weight_cu),
-            context_tags: habit.context_tags ?? [],
         })),
     };
 }
@@ -202,7 +198,6 @@ export default function PlanPage() {
                     body: JSON.stringify({
                         date: mutation.date,
                         habit_id: mutation.habitId,
-                        context_tag: mutation.contextTag,
                     }),
                 });
 
@@ -234,7 +229,6 @@ export default function PlanPage() {
                         planned_weight_cu: Number(
                             responseData.occurrence.planned_weight_cu,
                         ),
-                        context_tag: responseData.occurrence.context_tag,
                         habit_weight_cu: Number(
                             responseData.occurrence.habit_weight_cu,
                         ),

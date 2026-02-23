@@ -67,11 +67,6 @@ export function PlannedItemCard({
 								Micro-step
 							</span>
 						) : null}
-						{occurrence.context_tag ? (
-							<span className="rounded-full border border-border/70 bg-card px-2 py-0.5 text-muted-foreground">
-								{occurrence.context_tag}
-							</span>
-						) : null}
 					</div>
 				</div>
 

@@ -16,7 +16,6 @@ export type PlanMutation =
 			clientOccurrenceId: string;
 			date: string;
 			habitId: number;
-			contextTag: string | null;
 	  }
 	| {
 			kind: "move";
@@ -203,7 +202,6 @@ export function usePlanActions({
 					habit_id: habit.id,
 					habit_title: habit.title,
 					planned_weight_cu: habit.weight_cu,
-					context_tag: habit.context_tags[0] ?? null,
 					habit_weight_cu: habit.weight_cu,
 					habit_has_micro: habit.has_micro,
 					habit_micro_weight_cu: habit.micro_weight_cu,
@@ -225,7 +223,6 @@ export function usePlanActions({
 					clientOccurrenceId: tempId,
 					date,
 					habitId,
-					contextTag: optimisticOccurrence.context_tag,
 				};
 
 				return {

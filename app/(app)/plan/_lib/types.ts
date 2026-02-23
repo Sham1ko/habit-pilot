@@ -3,7 +3,6 @@ export type PlanOccurrence = {
 	habit_id: number;
 	habit_title: string;
 	planned_weight_cu: number;
-	context_tag: string | null;
 	habit_weight_cu: number;
 	habit_has_micro: boolean;
 	habit_micro_weight_cu: number;
@@ -22,7 +21,6 @@ export type HabitOption = {
 	freq_per_week: number;
 	has_micro: boolean;
 	micro_weight_cu: number;
-	context_tags: string[];
 };
 
 export type PlanData = {

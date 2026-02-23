@@ -85,10 +85,7 @@ export function buildWeekPlanIcs(plan: PlanData) {
 		day.occurrences.map((occurrence) => {
 			const nextDate = shiftIsoDate(day.date, 1);
 			const summary = escapeIcsText(occurrence.habit_title);
-			const descriptionParts = [
-				`${formatCu(occurrence.planned_weight_cu)} CU`,
-				occurrence.context_tag ? `Context: ${occurrence.context_tag}` : null,
-			].filter(Boolean);
+			const descriptionParts = [`${formatCu(occurrence.planned_weight_cu)} CU`];
 			const description = escapeIcsText(descriptionParts.join(" | "));
 
 			return [

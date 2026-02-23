@@ -57,21 +57,6 @@ const addOccurrenceSchema = z.object({
       message: "Invalid planned weight",
     })
     .optional(),
-  context_tag: z
-    .preprocess((value) => {
-      if (typeof value === "undefined") {
-        return undefined;
-      }
-      if (value === null) {
-        return null;
-      }
-      if (typeof value !== "string") {
-        return null;
-      }
-      const trimmed = value.trim();
-      return trimmed.length > 0 ? trimmed : null;
-    }, z.string().nullable())
-    .optional(),
 });
 
 const updateOccurrenceSchema = z
@@ -94,27 +79,10 @@ const updateOccurrenceSchema = z
         message: "Invalid planned weight",
       })
       .optional(),
-    context_tag: z
-      .preprocess((value) => {
-        if (typeof value === "undefined") {
-          return undefined;
-        }
-        if (value === null) {
-          return null;
-        }
-        if (typeof value !== "string") {
-          return null;
-        }
-        const trimmed = value.trim();
-        return trimmed.length > 0 ? trimmed : null;
-      }, z.string().nullable())
-      .optional(),
   })
   .refine(
-    ({ date, planned_weight_cu, context_tag }) =>
-      date !== undefined ||
-      planned_weight_cu !== undefined ||
-      context_tag !== undefined,
+    ({ date, planned_weight_cu }) =>
+      date !== undefined || planned_weight_cu !== undefined,
     { message: "No fields to update", path: ["fields"] },
   );
 
@@ -231,7 +199,6 @@ export async function GET(request: Request) {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
         habit_title: habits.title,
         habit_weight_cu: habits.weight_cu,
         habit_has_micro: habits.has_micro,
@@ -265,7 +232,6 @@ export async function GET(request: Request) {
         habit_id: number;
         habit_title: string;
         planned_weight_cu: string;
-        context_tag: string | null;
         habit_weight_cu: string;
         habit_has_micro: boolean;
         habit_micro_weight_cu: string;
@@ -285,7 +251,6 @@ export async function GET(request: Request) {
         habit_id: occurrence.habit_id,
         habit_title: occurrence.habit_title,
         planned_weight_cu: plannedWeight,
-        context_tag: occurrence.context_tag,
         habit_weight_cu: occurrence.habit_weight_cu?.toString() ?? "0",
         habit_has_micro: occurrence.habit_has_micro,
         habit_micro_weight_cu:
@@ -326,7 +291,6 @@ export async function GET(request: Request) {
           freq_per_week: habit.freq_per_week?.toString() ?? "0",
           has_micro: habit.has_micro,
           micro_weight_cu: habit.micro_weight_cu?.toString() ?? "0",
-          context_tags: habit.context_tags ?? [],
         })),
       },
       { status: 200 },
@@ -407,7 +371,6 @@ export async function POST(request: Request) {
         habit_id: habit.id,
         date,
         planned_weight_cu: plannedWeight,
-        context_tag: parsed.data.context_tag ?? null,
       })
       .returning();
 
@@ -426,7 +389,6 @@ export async function POST(request: Request) {
           habit_id: created.habit_id,
           date: parsed.data.date,
           planned_weight_cu: created.planned_weight_cu?.toString() ?? "0",
-          context_tag: created.context_tag,
           habit_title: habit.title,
           habit_weight_cu: habit.weight_cu?.toString() ?? "0",
           habit_has_micro: habit.has_micro,
@@ -544,7 +506,6 @@ export async function PATCH(request: Request) {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
         habit_title: habits.title,
         habit_weight_cu: habits.weight_cu,
         habit_has_micro: habits.has_micro,
@@ -571,7 +532,6 @@ export async function PATCH(request: Request) {
     const updateData: {
       date?: string;
       planned_weight_cu?: string;
-      context_tag?: string | null;
     } = {};
 
     if (parsed.data.date) {
@@ -580,10 +540,6 @@ export async function PATCH(request: Request) {
 
     if (parsed.data.planned_weight_cu) {
       updateData.planned_weight_cu = parsed.data.planned_weight_cu;
-    }
-
-    if (parsed.data.context_tag !== undefined) {
-      updateData.context_tag = parsed.data.context_tag ?? null;
     }
 
     if (updateData.date) {
@@ -629,7 +585,6 @@ export async function PATCH(request: Request) {
           habit_id: updated.habit_id,
           date: updated.date,
           planned_weight_cu: updated.planned_weight_cu?.toString() ?? "0",
-          context_tag: updated.context_tag,
           habit_title: occurrence.habit_title,
           habit_weight_cu: occurrence.habit_weight_cu?.toString() ?? "0",
           habit_has_micro: occurrence.habit_has_micro,
