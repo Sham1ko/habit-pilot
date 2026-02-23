@@ -772,10 +772,6 @@ function buildTopAttention(input: {
 				? clampRate(((done + micro) / plannedCount) * 100)
 				: null;
 
-		const contextTag =
-			planned.find((item) => Boolean(item.context_tag))?.context_tag ??
-			habit.context_tags?.[0] ??
-			null;
 		const microUsageCount = entries.filter(
 			(entry) => entry.status === "micro_done",
 		).length;
@@ -810,7 +806,6 @@ function buildTopAttention(input: {
 		items.push({
 			habitId: habit.id,
 			title: habit.title,
-			contextTag,
 			plannedCu: round(plannedCu, 1),
 			done,
 			micro,

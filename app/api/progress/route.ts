@@ -89,7 +89,6 @@ export async function GET(request: Request) {
         weight_cu: habits.weight_cu,
         micro_title: habits.micro_title,
         micro_weight_cu: habits.micro_weight_cu,
-        context_tags: habits.context_tags,
         has_micro: habits.has_micro,
         is_active: habits.is_active,
       })
@@ -102,7 +101,6 @@ export async function GET(request: Request) {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
       })
       .from(plannedOccurrences)
       .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
@@ -139,7 +137,6 @@ export async function GET(request: Request) {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
       })
       .from(plannedOccurrences)
       .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))
@@ -176,7 +173,6 @@ export async function GET(request: Request) {
         habit_id: plannedOccurrences.habit_id,
         date: plannedOccurrences.date,
         planned_weight_cu: plannedOccurrences.planned_weight_cu,
-        context_tag: plannedOccurrences.context_tag,
       })
       .from(plannedOccurrences)
       .innerJoin(habits, eq(plannedOccurrences.habit_id, habits.id))

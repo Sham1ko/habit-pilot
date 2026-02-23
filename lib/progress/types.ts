@@ -44,7 +44,6 @@ export type ProgressLoadBucket = {
 export type ProgressHabitAttention = {
 	habitId: number;
 	title: string;
-	contextTag: string | null;
 	plannedCu: number;
 	done: number;
 	micro: number;
@@ -126,7 +125,6 @@ export type ProgressHabitRow = {
 	weight_cu: unknown;
 	micro_title: string | null;
 	micro_weight_cu: unknown;
-	context_tags: string[];
 	has_micro: boolean;
 	is_active: boolean;
 };
@@ -136,7 +134,6 @@ export type ProgressPlannedRow = {
 	habit_id: number;
 	date: string;
 	planned_weight_cu: unknown;
-	context_tag: string | null;
 };
 
 export type ProgressEntryRow = {

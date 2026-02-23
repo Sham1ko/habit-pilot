@@ -17,7 +17,6 @@ function plannedRow(
 		habit_id: habitId,
 		date,
 		planned_weight_cu: plannedWeight.toString(),
-		context_tag: null,
 	};
 }
 

@@ -166,11 +166,6 @@ export function HabitsNeedingAttentionTable({
 										<TableCell>
 											<div>
 												<p className="font-medium">{habit.title}</p>
-												{habit.contextTag ? (
-													<p className="text-muted-foreground text-xs">
-														{habit.contextTag}
-													</p>
-												) : null}
 											</div>
 										</TableCell>
 										<TableCell>{habit.plannedCu}</TableCell>
@@ -219,11 +214,6 @@ export function HabitsNeedingAttentionTable({
 								<div className="mb-2 flex items-start justify-between gap-2">
 									<div>
 										<p className="font-semibold">{habit.title}</p>
-										{habit.contextTag ? (
-											<p className="text-muted-foreground text-xs">
-												{habit.contextTag}
-											</p>
-										) : null}
 									</div>
 									<Badge variant="outline">
 										{formatPercent(habit.successRate)}

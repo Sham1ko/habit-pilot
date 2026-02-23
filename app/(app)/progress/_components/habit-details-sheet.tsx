@@ -73,11 +73,6 @@ export function HabitDetailsSheet({
 								</div>
 								<div>
 									<h3 className="text-xl font-semibold">{habit.title}</h3>
-									{habit.contextTag ? (
-										<p className="text-muted-foreground text-sm">
-											{habit.contextTag}
-										</p>
-									) : null}
 								</div>
 							</div>
 						</section>
