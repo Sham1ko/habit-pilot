@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CuBadge } from "@/components/shared/cu-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,13 +22,45 @@ const statusLabel = {
 	recovered: "Recovered",
 } as const;
 
+const MICRO_TOGGLE_WIDTH_PX = 200;
+
 export function TodayHabitItem({
 	item,
 	isPending,
 	onAction,
 	formatCu,
 }: TodayHabitItemProps) {
+	const [isMicroExpanded, setIsMicroExpanded] = useState(false);
+	const [canToggleMicro, setCanToggleMicro] = useState(false);
 	const isCompleted = item.status !== "planned";
+	const microTitle = item.habit_micro_title?.trim();
+	const hasMicroDescription = item.habit_has_micro && Boolean(microTitle);
+	const microDescriptionId = `micro-step-${item.occurrence_id}`;
+	const microMeasureRef = useRef<HTMLSpanElement | null>(null);
+
+	useEffect(() => {
+		const measureTextWidth = () => {
+			if (!hasMicroDescription) {
+				setCanToggleMicro(false);
+				setIsMicroExpanded(false);
+				return;
+			}
+
+			const measuredWidth = microMeasureRef.current?.scrollWidth ?? 0;
+			const shouldToggle = measuredWidth > MICRO_TOGGLE_WIDTH_PX;
+			setCanToggleMicro(shouldToggle);
+			if (!shouldToggle) {
+				setIsMicroExpanded(false);
+			}
+		};
+
+		measureTextWidth();
+		window.addEventListener("resize", measureTextWidth);
+
+		return () => {
+			window.removeEventListener("resize", measureTextWidth);
+		};
+	}, [hasMicroDescription, microTitle]);
 
 	return (
 		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
@@ -65,6 +98,56 @@ export function TodayHabitItem({
 								</span>
 							) : null}
 						</div>
+						{hasMicroDescription ? (
+							<div className="relative">
+								<span
+									ref={microMeasureRef}
+									className="pointer-events-none absolute invisible whitespace-nowrap text-xs"
+									aria-hidden
+								>
+									{microTitle}
+								</span>
+								{canToggleMicro ? (
+									<button
+										type="button"
+										className="group flex w-full items-center gap-1 text-left text-xs"
+										aria-expanded={isMicroExpanded}
+										aria-controls={microDescriptionId}
+										onClick={() => setIsMicroExpanded((prev) => !prev)}
+									>
+										<span className="font-medium text-foreground/90">
+											Micro step:
+										</span>
+										<span
+											id={microDescriptionId}
+											className={cn(
+												"flex-1 text-muted-foreground transition-colors group-hover:text-foreground/90",
+												isMicroExpanded
+													? "whitespace-normal"
+													: "truncate whitespace-nowrap",
+											)}
+										>
+											{microTitle}
+										</span>
+										<span className="text-[11px] text-primary">
+											{isMicroExpanded ? "Hide" : "Show"}
+										</span>
+									</button>
+								) : (
+									<p className="flex w-full items-center gap-1 text-xs">
+										<span className="font-medium text-foreground/90">
+											Micro step:
+										</span>
+										<span
+											id={microDescriptionId}
+											className="text-muted-foreground"
+										>
+											{microTitle}
+										</span>
+									</p>
+								)}
+							</div>
+						) : null}
 					</div>
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
