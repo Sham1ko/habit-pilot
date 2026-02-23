@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `onboarding_stage` text DEFAULT 'completed' NOT NULL;

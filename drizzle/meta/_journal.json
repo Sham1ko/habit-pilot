@@ -22,6 +22,13 @@
       "when": 1771866220550,
       "tag": "0002_true_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1771868177187,
+      "tag": "0003_wakeful_lockjaw",
+      "breakpoints": true
     }
   ]
 }

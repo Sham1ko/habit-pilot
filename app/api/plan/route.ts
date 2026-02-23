@@ -5,8 +5,9 @@ import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 import { formatDateUTC, getDateContext } from "@/lib/date";
 import { getDb } from "@/lib/db";
-import { capacityPlans, habits, plannedOccurrences } from "@/lib/db/schema";
+import { capacityPlans, habits, plannedOccurrences, users } from "@/lib/db/schema";
 import { toNumber } from "@/lib/number";
+import { ONBOARDING_STAGE } from "@/lib/onboarding/stage";
 
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -172,6 +173,18 @@ export async function GET(request: Request) {
       : getWeekWindowFromStart(dateContext.weekStartDate);
 
     const db = await getDb();
+    if (user.onboarding_stage === ONBOARDING_STAGE.GO_PLAN) {
+      await db
+        .update(users)
+        .set({ onboarding_stage: ONBOARDING_STAGE.COMPLETED })
+        .where(
+          and(
+            eq(users.id, user.id),
+            eq(users.onboarding_stage, ONBOARDING_STAGE.GO_PLAN),
+          ),
+        );
+    }
+
     const capacityPromise = db
       .select()
       .from(capacityPlans)

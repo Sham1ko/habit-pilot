@@ -5,6 +5,7 @@ import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { ONBOARDING_STAGE } from "@/lib/onboarding/stage";
 
 const weeklyCapacitySchema = z
   .preprocess((value) => {
@@ -41,6 +42,7 @@ export async function GET() {
       {
         weekly_capacity_cu_default:
           user.weekly_capacity_cu_default?.toString() ?? null,
+        onboarding_stage: user.onboarding_stage,
       },
       { status: 200 },
     );
@@ -72,11 +74,17 @@ export async function PATCH(request: Request) {
     }
     const user = userResult.data;
 
+    const nextOnboardingStage =
+      user.onboarding_stage === ONBOARDING_STAGE.SET_CAPACITY
+        ? ONBOARDING_STAGE.ADD_FIRST_HABIT
+        : user.onboarding_stage;
+
     const db = await getDb();
     const [updatedUser] = await db
       .update(users)
       .set({
         weekly_capacity_cu_default: parsed.data.weekly_capacity_cu_default,
+        onboarding_stage: nextOnboardingStage,
       })
       .where(eq(users.id, user.id))
       .returning();
@@ -86,6 +94,7 @@ export async function PATCH(request: Request) {
         message: "User updated",
         weekly_capacity_cu_default:
           updatedUser.weekly_capacity_cu_default?.toString() ?? null,
+        onboarding_stage: updatedUser.onboarding_stage,
       },
       { status: 200 },
     );

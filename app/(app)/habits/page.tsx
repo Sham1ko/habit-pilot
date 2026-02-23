@@ -5,6 +5,8 @@ import { HabitCard } from "./_components/habit-card";
 import { HabitCreateDialog } from "./_components/habit-create-dialog";
 import { HabitsEmptyState } from "./_components/habit-empty-state";
 import { HabitsPageSkeleton } from "./_components/habits-page-skeleton";
+import { OnboardingPlanHint } from "./_components/onboarding-plan-hint";
+import { ONBOARDING_STAGE, type OnboardingStage } from "@/lib/onboarding/stage";
 import type { HabitListItem } from "./types";
 
 export default function HabitsPage() {
@@ -13,6 +15,9 @@ export default function HabitsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingHabitId, setDeletingHabitId] = useState<number | null>(null);
   const [togglingHabitId, setTogglingHabitId] = useState<number | null>(null);
+  const [onboardingStage, setOnboardingStage] = useState<OnboardingStage>(
+    ONBOARDING_STAGE.COMPLETED,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -22,6 +27,7 @@ export default function HabitsPage() {
         const response = await fetch("/api/habits");
         const data = (await response.json().catch(() => null)) as {
           habits?: HabitListItem[];
+          onboarding_stage?: OnboardingStage;
           error?: string;
         } | null;
 
@@ -31,6 +37,9 @@ export default function HabitsPage() {
 
         if (isMounted) {
           setHabits(data?.habits ?? []);
+          setOnboardingStage(
+            data?.onboarding_stage ?? ONBOARDING_STAGE.COMPLETED,
+          );
         }
       } catch (loadError) {
         if (isMounted) {
@@ -55,12 +64,19 @@ export default function HabitsPage() {
   }, []);
 
   const handleHabitCreated = (habit: HabitListItem) => {
+    const wasEmptyBeforeCreate = habits.length === 0;
     setHabits((prev) => {
       if (prev.some((item) => item.id === habit.id)) {
         return prev;
       }
       return [habit, ...prev];
     });
+    if (
+      wasEmptyBeforeCreate &&
+      onboardingStage === ONBOARDING_STAGE.ADD_FIRST_HABIT
+    ) {
+      setOnboardingStage(ONBOARDING_STAGE.GO_PLAN);
+    }
     setError(null);
     setIsLoading(false);
   };
@@ -186,6 +202,9 @@ export default function HabitsPage() {
       </header>
 
       <div className="grid gap-4">
+        {onboardingStage === ONBOARDING_STAGE.GO_PLAN ? (
+          <OnboardingPlanHint />
+        ) : null}
         {error ? (
           <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
             {error}

@@ -1,5 +1,9 @@
 import { relations, sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  DEFAULT_ONBOARDING_STAGE,
+  ONBOARDING_STAGE_VALUES,
+} from "@/lib/onboarding/stage";
 
 // ── Tables ─────────────────────────────────────────────────────────────
 
@@ -10,6 +14,9 @@ export const users = sqliteTable("users", {
   name: text("name"),
   tz: text("tz"),
   weekly_capacity_cu_default: text("weekly_capacity_cu_default"),
+  onboarding_stage: text("onboarding_stage", { enum: ONBOARDING_STAGE_VALUES })
+    .notNull()
+    .default(DEFAULT_ONBOARDING_STAGE),
   created_at: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

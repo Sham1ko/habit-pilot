@@ -4,6 +4,7 @@ import { setAuthCookie, signToken } from "@/lib/auth/jwt";
 import { hashPassword } from "@/lib/auth/password";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { ONBOARDING_STAGE } from "@/lib/onboarding/stage";
 
 export async function POST(request: Request) {
   try {
@@ -58,7 +59,11 @@ export async function POST(request: Request) {
 
     const [user] = await db
       .insert(users)
-      .values({ email, password_hash })
+      .values({
+        email,
+        password_hash,
+        onboarding_stage: ONBOARDING_STAGE.SET_CAPACITY,
+      })
       .returning({ id: users.id, email: users.email });
 
     const token = await signToken({ sub: user.email, userId: user.id });

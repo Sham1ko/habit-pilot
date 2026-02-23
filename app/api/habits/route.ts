@@ -4,7 +4,8 @@ import { z } from "zod";
 import { requireRequestUser } from "@/lib/api/auth";
 import { hasRouteError, parseJsonBody } from "@/lib/api/http";
 import { getDb } from "@/lib/db";
-import { habits } from "@/lib/db/schema";
+import { habits, users } from "@/lib/db/schema";
+import { ONBOARDING_STAGE } from "@/lib/onboarding/stage";
 
 type HabitPayload = {
   emoji?: string | null;
@@ -156,6 +157,20 @@ export async function POST(request: Request) {
       })
       .returning();
 
+    // D1 in this runtime does not support SQL BEGIN-based transactions.
+    // Move onboarding stage only after successful creation, and only once.
+    if (user.onboarding_stage === ONBOARDING_STAGE.ADD_FIRST_HABIT) {
+      await db
+        .update(users)
+        .set({ onboarding_stage: ONBOARDING_STAGE.GO_PLAN })
+        .where(
+          and(
+            eq(users.id, user.id),
+            eq(users.onboarding_stage, ONBOARDING_STAGE.ADD_FIRST_HABIT),
+          ),
+        );
+    }
+
     return NextResponse.json(
       {
         message: "Habit created",
@@ -187,7 +202,10 @@ export async function GET() {
       .where(eq(habits.user_id, user.id))
       .orderBy(desc(habits.created_at));
 
-    return NextResponse.json({ habits: allHabits }, { status: 200 });
+    return NextResponse.json(
+      { habits: allHabits, onboarding_stage: user.onboarding_stage },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Fetch habits error:", error);
     return NextResponse.json(
