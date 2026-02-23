@@ -49,8 +49,8 @@ export default function RegisterPage() {
                 throw new Error(data.error || "Registration failed");
             }
 
-            // Redirect to login or home page after successful registration
-            router.push("/login?registered=true");
+            router.push("/today");
+            router.refresh();
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
