@@ -34,12 +34,12 @@ export const features = [
 		description: "See effort vs outcomes to plan better next week.",
 	},
 	{
-		title: ".ics export",
-		description: "Drop your plan into any calendar in one click.",
+		title: "Habit management",
+		description: "Create, edit, pause, and delete habits as your routine changes.",
 	},
 	{
-		title: "Private sharing via token link",
-		description: "Share progress without creating accounts.",
+		title: "Flexible progress ranges",
+		description: "Review this week or pick a custom date range for deeper insight.",
 	},
 ];
 
@@ -57,11 +57,12 @@ export const faqs = [
 	{
 		question: "Is my data private?",
 		answer:
-			"Yes. Your data stays private by default and shared only when you choose.",
+			"Yes. Your habits and check-ins are tied to your account and are not public.",
 	},
 	{
-		question: "Can I export to calendar?",
-		answer: "Yes. Export your weekly plan as an .ics file anytime.",
+		question: "Can I change my habits later?",
+		answer:
+			"Yes. You can update details, pause active habits, or remove habits anytime.",
 	},
 ];
 
