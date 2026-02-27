@@ -51,6 +51,21 @@ export default function LoginPage() {
         <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black px-4">
             <div className="w-full max-w-md">
                 <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8">
+                    <div className="mb-6 flex items-center justify-center">
+                        <Link
+                            href="/"
+                            className="group inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-200"
+                        >
+                            <span
+                                aria-hidden="true"
+                                className="transition-transform group-hover:-translate-x-0.5"
+                            >
+                                ←
+                            </span>
+                            Return Home
+                        </Link>
+                    </div>
+
                     <div className="text-center mb-8">
                         <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">
                             Welcome Back
@@ -112,16 +127,18 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            Don&apos;t have an account?{" "}
+                    <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-700">
+                        <div className="rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-900/40">
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                Don&apos;t have an account yet?
+                            </p>
                             <Link
                                 href="/register"
-                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                className="mt-2 inline-flex text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
                             >
-                                Sign up
+                                Create account
                             </Link>
-                        </p>
+                        </div>
                     </div>
                 </div>
             </div>
