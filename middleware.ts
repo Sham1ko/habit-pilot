@@ -18,6 +18,13 @@ function isAuthPage(pathname: string) {
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    if (pathname === "/app" || pathname.startsWith("/app/")) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/today";
+        return NextResponse.redirect(url);
+    }
+
     const token = request.cookies.get("token")?.value;
 
     if (isAuthPage(pathname) && token) {
