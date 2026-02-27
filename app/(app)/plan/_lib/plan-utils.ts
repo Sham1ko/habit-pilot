@@ -1,5 +1,3 @@
-import type { PlanData } from "./types";
-
 function toUtcDate(dateString: string) {
 	return new Date(`${dateString}T00:00:00Z`);
 }
@@ -58,56 +56,4 @@ export function formatCu(value: number) {
 	}
 	const rounded = Math.round(value * 10) / 10;
 	return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
-}
-
-function escapeIcsText(value: string) {
-	return value
-		.replace(/\\/g, "\\\\")
-		.replace(/\n/g, "\\n")
-		.replace(/,/g, "\\,")
-		.replace(/;/g, "\\;");
-}
-
-function toIcsDate(dateString: string) {
-	return dateString.replaceAll("-", "");
-}
-
-function toIcsTimestamp(date: Date) {
-	return date
-		.toISOString()
-		.replace(/[-:]/g, "")
-		.replace(/\.\d{3}Z$/, "Z");
-}
-
-export function buildWeekPlanIcs(plan: PlanData) {
-	const stamp = toIcsTimestamp(new Date());
-	const events = plan.days.flatMap((day) =>
-		day.occurrences.map((occurrence) => {
-			const nextDate = shiftIsoDate(day.date, 1);
-			const summary = escapeIcsText(occurrence.habit_title);
-			const descriptionParts = [`${formatCu(occurrence.planned_weight_cu)} CU`];
-			const description = escapeIcsText(descriptionParts.join(" | "));
-
-			return [
-				"BEGIN:VEVENT",
-				`UID:${occurrence.id}@habit-pilot`,
-				`DTSTAMP:${stamp}`,
-				`DTSTART;VALUE=DATE:${toIcsDate(day.date)}`,
-				`DTEND;VALUE=DATE:${toIcsDate(nextDate)}`,
-				`SUMMARY:${summary}`,
-				`DESCRIPTION:${description}`,
-				"END:VEVENT",
-			].join("\r\n");
-		}),
-	);
-
-	return [
-		"BEGIN:VCALENDAR",
-		"VERSION:2.0",
-		"PRODID:-//Habit Pilot//Weekly Plan//EN",
-		"CALSCALE:GREGORIAN",
-		...events,
-		"END:VCALENDAR",
-		"",
-	].join("\r\n");
 }
