@@ -66,9 +66,11 @@ export function TodayHabitItem({
 		<div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
 			<div className="flex flex-wrap items-center justify-between gap-4">
 				<div className="flex items-center gap-4">
-					<div className="border p-4 rounded-lg bg-muted text-xl">
-						{item.habit_emoji ? `${item.habit_emoji} ` : ""}
-					</div>
+					{item.habit_emoji ? (
+						<div className="border p-4 rounded-lg bg-muted text-xl">
+							{item.habit_emoji}
+						</div>
+					) : null}
 					<div className="space-y-2">
 						<div className="flex flex-wrap items-center gap-2">
 							<h2 className="text-lg font-semibold">

@@ -63,18 +63,19 @@ export function HabitCard({
 						setIsOpen((prev) => !prev);
 					}
 				}}
-				className={`rounded-xl border border-border bg-card p-4 text-card-foreground cursor-pointer ${
-					habit.is_active ? "" : "opacity-80"
-				}`}
+				className={`rounded-xl border border-border bg-card p-4 text-card-foreground cursor-pointer ${habit.is_active ? "" : "opacity-80"
+					}`}
 			>
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="flex min-w-0 items-start gap-3 sm:gap-4">
-						<div className="border p-3 rounded-lg bg-muted text-2xl shrink-0">
-							{habit.emoji ? `${habit.emoji} ` : ""}
-						</div>
+						{habit.emoji ? (
+							<div className="border p-3 rounded-lg bg-muted text-2xl shrink-0">
+								{habit.emoji}
+							</div>
+						) : null}
 						<div className="min-w-0 space-y-2">
 							<div className="flex flex-wrap items-center gap-2">
-								<h2 className="text-lg font-semibold leading-tight break-words">
+								<h2 className="text-lg font-semibold leading-tight wrap-break-word">
 									{habit.title}
 								</h2>
 								{habit.is_active ? null : (
