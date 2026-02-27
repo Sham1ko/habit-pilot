@@ -5,7 +5,11 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-export function Header() {
+type HeaderProps = {
+	isAuthenticated: boolean;
+};
+
+export function Header({ isAuthenticated }: HeaderProps) {
 	const [isScrolled, setIsScrolled] = useState(false);
 
 	useEffect(() => {
@@ -44,9 +48,20 @@ export function Header() {
 							FAQ
 						</a>
 					</nav>
-					<Button asChild variant="outline" size="sm" className="md:ml-2">
-						<Link href="/today">Open app</Link>
-					</Button>
+					{isAuthenticated ? (
+						<Button asChild variant="outline" size="sm" className="md:ml-2">
+							<Link href="/today">Open App</Link>
+						</Button>
+					) : (
+						<div className="flex items-center gap-2 md:ml-2">
+							<Button asChild variant="ghost" size="sm">
+								<Link href="/login">Login</Link>
+							</Button>
+							<Button asChild size="sm">
+								<Link href="/register">Register</Link>
+							</Button>
+						</div>
+					)}
 				</div>
 			</div>
 		</header>

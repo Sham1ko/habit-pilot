@@ -7,11 +7,16 @@ import { HeroSection } from "./_components/hero-section";
 import { HowItWorksSection } from "./_components/how-it-works-section";
 import { PreviewSection } from "./_components/preview-section";
 import { ProblemSection } from "./_components/problem-section";
+import { getAuthCookie, verifyToken } from "@/lib/auth/jwt";
 
-export default function HomePage() {
+export default async function HomePage() {
+	const token = await getAuthCookie();
+	const payload = token ? await verifyToken(token) : null;
+	const isAuthenticated = Boolean(payload);
+
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<Header />
+			<Header isAuthenticated={isAuthenticated} />
 			<main>
 				<HeroSection />
 				<ProblemSection />
