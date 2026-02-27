@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: habit-pilot-d1-db
     working_dir: /workspace
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
@@ -21,7 +20,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: habit-pilot-app
     working_dir: /workspace
     depends_on:
       - d1-db
