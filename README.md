@@ -20,18 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Run Database Only With Docker (SQLite / Local D1)
+## Run With Docker
 
 ```bash
 docker compose up --build
 ```
 
-This starts only the local D1/SQLite database state and applies migrations.
-Run Next.js separately on your host machine (`pnpm dev`).
+This starts the Next.js app and local D1/SQLite state in containers.
+App URL: `http://localhost:3000`.
 
 Notes:
 - SQLite state is stored in `./.wrangler/state`.
-- Migrations are applied automatically when the container starts.
+- Migrations are applied automatically on startup.
 
 ## Learn More
 

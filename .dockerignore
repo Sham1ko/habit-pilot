@@ -1,0 +1,9 @@
+.git
+.next
+.open-next
+.wrangler
+node_modules
+coverage
+*.log
+.env
+docs

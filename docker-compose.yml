@@ -1,25 +1,49 @@
 services:
   d1-db:
-    image: node:20-bookworm-slim
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: habit-pilot-d1-db
     working_dir: /workspace
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
       D1_DATABASE_NAME: ${D1_DATABASE_NAME:-habit-pilot}
+      CF_REMOTE_BINDINGS: "false"
       CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
     volumes:
       - ./:/workspace
       - d1_node_modules:/workspace/node_modules
       - ./.wrangler/state:/workspace/.wrangler/state
-    command:
-      - sh
-      - -c
-      - |
-        corepack enable
-        pnpm install --frozen-lockfile
-        pnpm wrangler d1 migrations apply "$${D1_DATABASE_NAME}" --local
-        tail -f /dev/null
+    command: ["sh", "./docker/start-db.sh"]
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: habit-pilot-app
+    working_dir: /workspace
+    depends_on:
+      - d1-db
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-change-me-at-least-32-characters}
+      D1_DATABASE_NAME: ${D1_DATABASE_NAME:-habit-pilot}
+      CF_REMOTE_BINDINGS: "false"
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
+    volumes:
+      - ./:/workspace
+      - app_node_modules:/workspace/node_modules
+      - app_next:/workspace/.next
+      - ./.wrangler/state:/workspace/.wrangler/state
+    command: ["sh", "./docker/start-app.sh"]
     restart: unless-stopped
 
 volumes:
   d1_node_modules:
+  app_node_modules:
+  app_next:
