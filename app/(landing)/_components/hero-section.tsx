@@ -14,7 +14,7 @@ export function HeroSection() {
 				/>
 			</div>
 
-			<div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+			<div className="relative mx-auto max-w-5xl px-4">
 				<div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
 					<div className="text-center lg:text-left">
 						<div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
