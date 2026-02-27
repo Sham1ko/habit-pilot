@@ -15,10 +15,28 @@ services:
       CF_REMOTE_BINDINGS: "false"
       CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
     volumes:
-      - ./:/workspace
       - app_node_modules:/workspace/node_modules
       - app_next:/workspace/.next
       - ./.wrangler/state:/workspace/.wrangler/state
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /workspace
+          ignore:
+            - .git/
+            - .next/
+            - .open-next/
+            - .wrangler/
+            - node_modules/
+            - coverage/
+            - dist/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+        - action: rebuild
+          path: Dockerfile
     command: ["sh", "./docker/start-app.sh"]
     restart: unless-stopped
 

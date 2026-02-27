@@ -33,6 +33,23 @@ Notes:
 - SQLite state is stored in `./.wrangler/state`.
 - Migrations are applied automatically on startup.
 
+## Docker Watch Mode
+
+```bash
+docker compose up --build --watch
+```
+
+Alternative (2 terminals):
+
+```bash
+docker compose up --build
+docker compose watch
+```
+
+What watch mode does:
+- Syncs source changes into the container without full rebuild.
+- Rebuilds the image when `package.json`, `pnpm-lock.yaml`, or `Dockerfile` changes.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
