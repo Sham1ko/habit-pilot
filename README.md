@@ -1,66 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Habit Pilot
 
-## Getting Started
+Habit Pilot is a web app for planning and tracking habits with a weekly capacity model (`CU` units).
+You define habits, distribute them across the week, track daily execution, and analyze progress over time.
 
-First, run the development server:
+## What the app does
+
+- Authentication with JWT cookie sessions (`/login`, `/register`, `/logout`)
+- Habit management: create, edit, disable, and delete habits
+- Weekly planning board with drag-and-drop style scheduling logic
+- Daily execution flow (`/today`) with status updates and recovery suggestions
+- Progress analytics (`/progress`) with charts and range presets
+- Basic onboarding flow (set capacity -> add first habit -> plan week)
+- Light/Dark theme support
+
+## Tech stack
+
+- Next.js 16 (App Router) + React 19 + TypeScript
+- Tailwind CSS v4 + Radix UI primitives
+- Drizzle ORM
+- Cloudflare D1 (SQLite-compatible), local D1 emulator for development
+- OpenNext for Cloudflare deployment
+
+## Project structure
+
+- `app/(landing)` -> public landing page
+- `app/(auth)` -> auth pages
+- `app/(app)` -> protected application pages (`today`, `plan`, `habits`, `progress`, `settings`)
+- `app/api/*` -> API routes for auth, user, habits, plan, progress, today
+- `lib/*` -> domain logic (auth, db, planning, progress, onboarding)
+- `drizzle/*` -> schema and migrations
+
+## Environment variables
+
+Create local env file:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `JWT_SECRET` -> secret for signing/verifying JWTs (use a random value, 32+ chars)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Common local/dev values:
 
-## Run With Docker
+- `PORT=3000`
+- `CF_REMOTE_BINDINGS=false` -> use local D1 emulator bindings
+- `D1_DATABASE_NAME=habit-pilot`
+
+Only for remote Cloudflare D1 (`CF_REMOTE_BINDINGS=true`):
+
+- `CLOUDFLARE_D1_DATABASE_ID`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_D1_TOKEN`
+
+## Run locally
+
+1. Install dependencies:
+
+```bash
+pnpm install
+```
+
+2. Start dev server:
+
+```bash
+pnpm dev
+```
+
+3. Open `http://localhost:3000`
+
+Useful commands:
+
+- `pnpm lint` -> run ESLint
+- `pnpm test` -> run unit tests
+- `pnpm db:generate` -> generate migrations
+- `pnpm db:migrate` -> apply migrations
+- `pnpm db:studio` -> open Drizzle Studio
+
+## Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-This starts the Next.js app in a single container and uses local D1/SQLite state.
-App URL: `http://localhost:3000`.
-
 Notes:
-- SQLite state is stored in `./.wrangler/state`.
-- Migrations are applied automatically on startup.
 
-## Docker Watch Mode
+- App is available at `http://localhost:3000`
+- Local DB state is persisted in `./.wrangler/state`
+- Migrations are applied on container startup (`docker/start-app.sh`)
+
+Watch mode:
 
 ```bash
 docker compose up --build --watch
 ```
 
-Alternative (2 terminals):
+## Deployment (Cloudflare)
 
-```bash
-docker compose up --build
-docker compose watch
-```
+- `pnpm cf:build` -> build for Cloudflare via OpenNext
+- `pnpm cf:deploy` -> build + deploy
+- `pnpm cf:deploy-only` -> deploy already built output
 
-What watch mode does:
-- Syncs source changes into the container without full rebuild.
-- Rebuilds the image when `package.json`, `pnpm-lock.yaml`, or `Dockerfile` changes.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Before deployment, configure Cloudflare env and D1 bindings.
