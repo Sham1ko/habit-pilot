@@ -26,7 +26,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 docker compose up --build
 ```
 
-This starts the Next.js app and local D1/SQLite state in containers.
+This starts the Next.js app in a single container and uses local D1/SQLite state.
 App URL: `http://localhost:3000`.
 
 Notes:
