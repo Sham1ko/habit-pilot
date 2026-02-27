@@ -29,6 +29,13 @@
       "when": 1771868177187,
       "tag": "0003_wakeful_lockjaw",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772212754288,
+      "tag": "0004_last_sentinels",
+      "breakpoints": true
     }
   ]
 }

@@ -83,28 +83,11 @@ export const capacityPlans = sqliteTable("capacity_plans", {
   capacity_cu: text("capacity_cu").notNull(),
 });
 
-export const shareLinks = sqliteTable("share_links", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  user_id: integer("user_id", { mode: "number" })
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  token: text("token").notNull().unique(),
-  kind: text("kind", { enum: ["public", "ics"] }).notNull(),
-  is_active: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  expires_at: integer("expires_at", { mode: "timestamp" }),
-  created_at: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
-
 // ── Relations ──────────────────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
   habits: many(habits),
   capacityPlans: many(capacityPlans),
-  shareLinks: many(shareLinks),
 }));
 
 export const habitsRelations = relations(habits, ({ one, many }) => ({
@@ -137,13 +120,6 @@ export const capacityPlansRelations = relations(capacityPlans, ({ one }) => ({
   }),
 }));
 
-export const shareLinksRelations = relations(shareLinks, ({ one }) => ({
-  user: one(users, {
-    fields: [shareLinks.user_id],
-    references: [users.id],
-  }),
-}));
-
 // ── Type helpers ───────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -160,6 +136,3 @@ export type NewPlannedOccurrence = typeof plannedOccurrences.$inferInsert;
 
 export type CapacityPlan = typeof capacityPlans.$inferSelect;
 export type NewCapacityPlan = typeof capacityPlans.$inferInsert;
-
-export type ShareLink = typeof shareLinks.$inferSelect;
-export type NewShareLink = typeof shareLinks.$inferInsert;
