@@ -1,8 +1,10 @@
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 
+const useRemoteBindings = process.env.CF_REMOTE_BINDINGS === "true";
+
 initOpenNextCloudflareForDev({
-  remoteBindings: true,
+  remoteBindings: useRemoteBindings,
 });
 
 const nextConfig: NextConfig = {

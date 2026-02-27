@@ -1,23 +1,25 @@
-# NOTE: PostgreSQL is no longer used. The project has migrated to
-# Cloudflare D1 (SQLite). This file is kept for reference only.
-# For local development, the app uses a local SQLite file (local.db)
-# via better-sqlite3.
-
-version: "3.8"
-
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: habit-pilot-postgres
+  d1-db:
+    image: node:20-bookworm-slim
+    container_name: habit-pilot-d1-db
+    working_dir: /workspace
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "${POSTGRES_PORT}:5432"
+      NEXT_TELEMETRY_DISABLED: "1"
+      D1_DATABASE_NAME: ${D1_DATABASE_NAME:-habit-pilot}
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./:/workspace
+      - d1_node_modules:/workspace/node_modules
+      - ./.wrangler/state:/workspace/.wrangler/state
+    command:
+      - sh
+      - -c
+      - |
+        corepack enable
+        pnpm install --frozen-lockfile
+        pnpm wrangler d1 migrations apply "$${D1_DATABASE_NAME}" --local
+        tail -f /dev/null
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
-    driver: local
+  d1_node_modules:
