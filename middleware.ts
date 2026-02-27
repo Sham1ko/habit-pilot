@@ -28,6 +28,14 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
 
     if (isAuthPage(pathname) && token) {
+        if (request.nextUrl.searchParams.get("clearToken") === "1") {
+            const url = request.nextUrl.clone();
+            url.searchParams.delete("clearToken");
+            const response = NextResponse.redirect(url);
+            response.cookies.delete("token");
+            return response;
+        }
+
         try {
             const secret = new TextEncoder().encode(process.env.JWT_SECRET);
             await jwtVerify(token, secret);
