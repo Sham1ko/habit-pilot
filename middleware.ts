@@ -2,6 +2,7 @@ import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = ["/", "/login", "/register", "/api/auth"];
+const AUTH_PAGES = ["/login", "/register"];
 
 function isPublic(pathname: string) {
     return PUBLIC_PATHS.some(
@@ -9,15 +10,35 @@ function isPublic(pathname: string) {
     );
 }
 
+function isAuthPage(pathname: string) {
+    return AUTH_PAGES.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const token = request.cookies.get("token")?.value;
+
+    if (isAuthPage(pathname) && token) {
+        try {
+            const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+            await jwtVerify(token, secret);
+            const url = request.nextUrl.clone();
+            url.pathname = "/today";
+            return NextResponse.redirect(url);
+        } catch {
+            // Invalid token on auth pages should not block access to login/register
+            const response = NextResponse.next();
+            response.cookies.delete("token");
+            return response;
+        }
+    }
 
     // Allow public routes through
     if (isPublic(pathname)) {
         return NextResponse.next();
     }
-
-    const token = request.cookies.get("token")?.value;
 
     if (!token) {
         const url = request.nextUrl.clone();
