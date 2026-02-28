@@ -12,72 +12,12 @@ import {
   plannedOccurrences,
 } from "@/lib/db/schema";
 import { toNumber } from "@/lib/number";
+import { computeWeekUsage } from "@/lib/today/usage";
 
 const actionSchema = z.object({
   occurrenceId: z.string().uuid(),
   action: z.enum(["done", "micro_done", "skipped"]),
 });
-
-function computeWeekUsage(
-  plannedOccurrences: Array<{
-    habit_id: number;
-    date: string;
-    planned_weight_cu: unknown;
-  }>,
-  entries: Array<{
-    habit_id: number;
-    date: string;
-    actual_weight_cu: { toString(): string };
-    status: string;
-    id?: string | number;
-  }>,
-) {
-  const plannedByKey = new Map<string, number>();
-  let plannedTotal = 0;
-
-  plannedOccurrences.forEach((occurrence) => {
-    const dateKey = occurrence.date;
-    const key = `${occurrence.habit_id}-${dateKey}`;
-    const plannedWeight = toNumber(occurrence.planned_weight_cu);
-    plannedByKey.set(key, plannedWeight);
-    plannedTotal += plannedWeight;
-  });
-
-  const entryByKey = new Map<string, (typeof entries)[number]>();
-  entries.forEach((entry) => {
-    const dateKey = entry.date;
-    const key = `${entry.habit_id}-${dateKey}`;
-    entryByKey.set(key, entry);
-  });
-
-  let used = 0;
-
-  plannedByKey.forEach((plannedWeight, key) => {
-    const entry = entryByKey.get(key);
-    if (!entry) {
-      used += plannedWeight;
-      return;
-    }
-
-    if (entry.status === "skipped") {
-      return;
-    }
-
-    used += toNumber(entry.actual_weight_cu);
-  });
-
-  entryByKey.forEach((entry, key) => {
-    if (plannedByKey.has(key)) {
-      return;
-    }
-    if (entry.status === "skipped") {
-      return;
-    }
-    used += toNumber(entry.actual_weight_cu);
-  });
-
-  return { used, plannedTotal, entryByKey };
-}
 
 export async function GET() {
   try {

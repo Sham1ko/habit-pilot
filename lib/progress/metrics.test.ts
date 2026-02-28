@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import {
 	computeCapacityUsed,
 	computeCompletionBreakdown,
@@ -37,19 +36,8 @@ function entryRow(
 	};
 }
 
-function run(name: string, fn: () => void) {
-	try {
-		fn();
-		process.stdout.write(`✓ ${name}\n`);
-	} catch (error) {
-		process.stderr.write(`✗ ${name}\n`);
-		throw error;
-	}
-}
-
-run(
-	"computeCapacityUsed returns within status when usage is under budget",
-	() => {
+describe("progress metrics", () => {
+	test("computeCapacityUsed returns within status when usage is under budget", () => {
 		const planned = [
 			plannedRow("p1", 1, "2026-01-05", 20),
 			plannedRow("p2", 2, "2026-01-06", 20),
@@ -66,37 +54,34 @@ run(
 			weeklyCapacityDefault: null,
 		});
 
-		assert.equal(result.usedCu, 34);
-		assert.equal(result.budgetCu, 40);
-		assert.equal(result.status, "within");
-	},
-);
-
-run("computeCapacityUsed returns over status when usage exceeds budget", () => {
-	const planned = [
-		plannedRow("p1", 1, "2026-01-05", 20),
-		plannedRow("p2", 2, "2026-01-06", 20),
-	];
-	const entries = [entryRow("e1", 1, "2026-01-05", "done", 24)];
-	const capacityByWeek = new Map<string, number | null>([["2026-01-05", 40]]);
-
-	const result = computeCapacityUsed({
-		planned,
-		entries,
-		rangeStart: "2026-01-05",
-		rangeEnd: "2026-01-11",
-		capacityByWeek,
-		weeklyCapacityDefault: null,
+		expect(result.usedCu).toBe(34);
+		expect(result.budgetCu).toBe(40);
+		expect(result.status).toBe("within");
 	});
 
-	assert.equal(result.usedCu, 44);
-	assert.equal(result.budgetCu, 40);
-	assert.equal(result.status, "over");
-});
+	test("computeCapacityUsed returns over status when usage exceeds budget", () => {
+		const planned = [
+			plannedRow("p1", 1, "2026-01-05", 20),
+			plannedRow("p2", 2, "2026-01-06", 20),
+		];
+		const entries = [entryRow("e1", 1, "2026-01-05", "done", 24)];
+		const capacityByWeek = new Map<string, number | null>([["2026-01-05", 40]]);
 
-run(
-	"computeCompletionBreakdown counts done, micro, explicit skips and unresolved planned",
-	() => {
+		const result = computeCapacityUsed({
+			planned,
+			entries,
+			rangeStart: "2026-01-05",
+			rangeEnd: "2026-01-11",
+			capacityByWeek,
+			weeklyCapacityDefault: null,
+		});
+
+		expect(result.usedCu).toBe(44);
+		expect(result.budgetCu).toBe(40);
+		expect(result.status).toBe("over");
+	});
+
+	test("computeCompletionBreakdown counts done, micro, explicit skips and unresolved planned", () => {
 		const planned = [
 			plannedRow("p1", 1, "2026-01-05", 2),
 			plannedRow("p2", 2, "2026-01-06", 2),
@@ -116,16 +101,13 @@ run(
 			today: "2026-01-07",
 		});
 
-		assert.equal(result.done, 2);
-		assert.equal(result.micro, 1);
-		assert.equal(result.skipped, 2);
-		assert.equal(result.total, 5);
-	},
-);
+		expect(result.done).toBe(2);
+		expect(result.micro).toBe(1);
+		expect(result.skipped).toBe(2);
+		expect(result.total).toBe(5);
+	});
 
-run(
-	"computeLoadSuccessBuckets calculates weighted success and sweet spot",
-	() => {
+	test("computeLoadSuccessBuckets calculates weighted success and sweet spot", () => {
 		const result = computeLoadSuccessBuckets([
 			{ plannedCu: 2, successRate: 100, plannedCount: 1 },
 			{ plannedCu: 3, successRate: 50, plannedCount: 1 },
@@ -136,28 +118,23 @@ run(
 		]);
 
 		const bucket45 = result.buckets.find((bucket) => bucket.key === "4-5");
-		assert.ok(bucket45);
-		assert.equal(bucket45.successRate, 86.7);
-		assert.equal(bucket45.days, 2);
-		assert.equal(result.sweetSpotKey, "4-5");
-		assert.equal(result.sweetSpotCu, 4.5);
-		assert.equal(result.sweetSpotLabel, "sweet spot ≈ 4.5 CU/day");
-	},
-);
+		expect(bucket45).toBeDefined();
+		expect(bucket45?.successRate).toBe(86.7);
+		expect(bucket45?.days).toBe(2);
+		expect(result.sweetSpotKey).toBe("4-5");
+		expect(result.sweetSpotCu).toBe(4.5);
+		expect(result.sweetSpotLabel).toBe("sweet spot ≈ 4.5 CU/day");
+	});
 
-run(
-	"computeLoadSuccessBuckets has no sweet spot when no bucket has at least 2 days",
-	() => {
+	test("computeLoadSuccessBuckets has no sweet spot when no bucket has at least 2 days", () => {
 		const result = computeLoadSuccessBuckets([
 			{ plannedCu: 2, successRate: 100, plannedCount: 1 },
 			{ plannedCu: 5, successRate: 80, plannedCount: 1 },
 			{ plannedCu: 6, successRate: 70, plannedCount: 1 },
 		]);
 
-		assert.equal(result.sweetSpotKey, null);
-		assert.equal(result.sweetSpotCu, null);
-		assert.equal(result.sweetSpotLabel, null);
-	},
-);
-
-process.stdout.write("All progress metric tests passed.\n");
+		expect(result.sweetSpotKey).toBeNull();
+		expect(result.sweetSpotCu).toBeNull();
+		expect(result.sweetSpotLabel).toBeNull();
+	});
+});

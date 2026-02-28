@@ -22,7 +22,7 @@
         "paths": {
             "@/*": ["./*"]
         },
-        "types": ["@cloudflare/workers-types"]
+        "types": ["@cloudflare/workers-types", "jest"]
     },
     "include": [
         "next-env.d.ts",
